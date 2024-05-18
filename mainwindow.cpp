@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QFileDialog>
 #include <QPdfDocument>
 #include <QGraphicsPixmapItem>
 
@@ -22,7 +23,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_load_clicked()
 {
-    QString filepath = ui->lineEdit_path->text();
+    QString filepath = QFileDialog::getOpenFileName(this);
+    if (filepath.isEmpty()) { return; }
+
+    ui->lineEdit_path->setText(filepath);
 
     QPdfDocument pdf;
     print("Loading " + filepath);
@@ -35,14 +39,14 @@ void MainWindow::on_pushButton_load_clicked()
         print(QString("    %1: %2x%3")
               .arg(i)
               .arg(size.width()).arg(size.height()));
+
+        QImage im = pdf.render(i, pdf.pageSize(0).toSize() * 2);
+        PageScenePtr page(new PageScene());
+        page->setImage(im);
+        pages.append(page);
     }
 
-    QImage im = pdf.render(0, pdf.pageSize(0).toSize() * 2);
-    QGraphicsPixmapItem *p = mScene->addPixmap(QPixmap::fromImage(im));
-
-    mSelrect->setRect(p->boundingRect());
-
-    ui->graphicsView->fitInView(p, Qt::KeepAspectRatio);
+    viewPage(1);
 }
 
 void MainWindow::print(QString msg)
@@ -52,9 +56,6 @@ void MainWindow::print(QString msg)
 
 void MainWindow::setupGraphicsView()
 {
-    mScene = new QGraphicsScene();
-    ui->graphicsView->setScene(mScene);
-
     // Mouse event signals/slots
     connect(ui->graphicsView, &GraphicsView::leftMouseDragStart,
             this, &MainWindow::onGraphicsViewLeftMouseDragStart);
@@ -62,39 +63,59 @@ void MainWindow::setupGraphicsView()
             this, &MainWindow::onGraphicsViewLeftMouseDrag);
     connect(ui->graphicsView, &GraphicsView::leftMouseDragEnd,
             this, &MainWindow::onGraphicsViewLeftMouseDragEnd);
+    connect(ui->graphicsView, &GraphicsView::resized,
+            this, &MainWindow::onGraphicsViewResized);
+}
 
-    // Add selection box
-    mSelrect = new QGraphicsRectItem(-50, -50, 100, 100);
-    mSelrect->setPen(QPen(Qt::blue, 2)); // Set blue border
-    QColor fillColor(Qt::blue);
-    fillColor.setAlphaF(0.5);
-    mSelrect->setBrush(fillColor); // Set semi-transparent blue fill
+void MainWindow::viewPage(int index)
+{
+    PageScenePtr page = pages.value(index);
+    if (!page) { return; }
 
-    // Add the item to the scene
-    mScene->addItem(mSelrect);
-    mSelrect->hide();
+    ui->graphicsView->setScene(page.data());
+    QMetaObject::invokeMethod(this, &MainWindow::scaleScene, Qt::QueuedConnection);
+    currentPage = index;
+}
+
+void MainWindow::scaleScene()
+{
+    PageScenePtr page = pages.value(currentPage);
+    if (!page) { return; }
+
+    QRectF rect;
+    if (mIsCropping) {
+        rect = page->mPixmap->boundingRect();
+    } else {
+        rect = page->mSelrect->rect();
+    }
+
+    ui->graphicsView->fitInView(rect, Qt::KeepAspectRatio);
+    ui->graphicsView->centerOn(rect.center());
 }
 
 void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 {
     mGraphicsViewLeftMouseDown = true;
 
-    int edge = 0; // left, right, top, bottom
-    qreal dist = qAbs(pos.x() - mSelrect->rect().left());
+    PageScenePtr page = pages.value(currentPage);
+    if (!page) { return; }
 
-    qreal d2 = qAbs(pos.x() - mSelrect->rect().right());
+    int edge = 0; // left, right, top, bottom
+    qreal dist = qAbs(pos.x() - page->mSelrect->rect().left());
+
+    qreal d2 = qAbs(pos.x() - page->mSelrect->rect().right());
     if (d2 < dist) {
         dist = d2;
         edge = 1;
     }
 
-    d2 = qAbs(pos.y() - mSelrect->rect().top());
+    d2 = qAbs(pos.y() - page->mSelrect->rect().top());
     if (d2 < dist) {
         dist = d2;
         edge = 2;
     }
 
-    d2 = qAbs(pos.y() - mSelrect->rect().bottom());
+    d2 = qAbs(pos.y() - page->mSelrect->rect().bottom());
     if (d2 < dist) {
         dist = d2;
         edge = 3;
@@ -109,6 +130,9 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
     if (!mGraphicsViewLeftMouseDown) { return; }
     if (!mIsCropping) { return; }
 
+    PageScenePtr page = pages.value(currentPage);
+    if (!page) { return; }
+
     qreal dist;
     if (mSelrectEdge <= 1) {
         // Left/right
@@ -118,7 +142,7 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
         dist = pos.y() - mSelStart.y();
     }
 
-    QRectF rect = mSelrect->rect();
+    QRectF rect = page->mSelrect->rect();
     switch (mSelrectEdge) {
     case 0:
         rect.setLeft(rect.left() + dist);
@@ -133,7 +157,7 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
         rect.setBottom(rect.bottom() + dist);
         break;
     }
-    mSelrect->setRect(rect);
+    page->mSelrect->setRect(rect);
 
     mSelStart = pos;
 }
@@ -143,20 +167,22 @@ void MainWindow::onGraphicsViewLeftMouseDragEnd(QPointF /*pos*/)
     mGraphicsViewLeftMouseDown = false;
 }
 
+void MainWindow::onGraphicsViewResized()
+{
+    scaleScene();
+}
 
 void MainWindow::on_pushButton_crop_clicked()
 {
     mIsCropping = ui->pushButton_crop->isChecked();
 
-    mSelrect->setVisible(mIsCropping);
+    PageScenePtr page = pages.value(currentPage);
+    if (!page) { return; }
 
-    if (mIsCropping) {
-        ui->graphicsView->fitInView(mScene->sceneRect(), Qt::KeepAspectRatio);
-    } else {
-        ui->graphicsView->fitInView(mSelrect->rect(), Qt::KeepAspectRatio);
-    }
+    page->mSelrect->setVisible(mIsCropping);
+
+    scaleScene();
 }
-
 
 void MainWindow::on_action_Debug_Console_triggered()
 {
@@ -167,3 +193,34 @@ void MainWindow::on_action_Debug_Console_triggered()
     }
 }
 
+void MainWindow::on_pushButton_next_clicked()
+{
+    viewPage(currentPage + 1);
+}
+
+void MainWindow::on_pushButton_prev_clicked()
+{
+    viewPage(currentPage - 1);
+}
+
+
+MainWindow::PageScene::PageScene()
+{
+    // Add selection box
+    mSelrect = new QGraphicsRectItem(-50, -50, 100, 100);
+    mSelrect->setPen(QPen(Qt::blue, 2)); // Set blue border
+    QColor fillColor(Qt::blue);
+    fillColor.setAlphaF(0.5);
+    mSelrect->setBrush(fillColor); // Set semi-transparent blue fill
+
+    // Add the item to the scene
+    this->addItem(mSelrect);
+    mSelrect->setZValue(1);
+    mSelrect->hide();
+}
+
+void MainWindow::PageScene::setImage(QImage image)
+{
+    mPixmap = this->addPixmap(QPixmap::fromImage(image));
+    mSelrect->setRect(mPixmap->boundingRect());
+}

@@ -27,7 +27,7 @@
           <item>
            <widget class="QLineEdit" name="lineEdit_path">
             <property name="text">
-             <string>/home/gideon/Sondag/Alive In You  - D.pdf</string>
+             <string/>
             </property>
            </widget>
           </item>
@@ -42,6 +42,20 @@
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QPushButton" name="pushButton_prev">
+            <property name="text">
+             <string>Prev</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_next">
+            <property name="text">
+             <string>Next</string>
+            </property>
+           </widget>
+          </item>
           <item>
            <spacer name="horizontalSpacer">
             <property name="orientation">

@@ -15,6 +15,7 @@ signals:
     void leftMouseDragStart(QPointF pos);
     void leftMouseDrag(QPointF pos);
     void leftMouseDragEnd(QPointF pos);
+    void resized();
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override
@@ -42,6 +43,12 @@ protected:
         }
 
         QGraphicsView::mouseReleaseEvent(event);
+    }
+
+    void resizeEvent(QResizeEvent* event) override
+    {
+        emit resized();
+        QGraphicsView::resizeEvent(event);
     }
 };
 
