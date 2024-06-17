@@ -1,9 +1,16 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
+#include "breadcrumbs.h"
+
 #include <QGraphicsScene>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QMainWindow>
 #include <QSharedPointer>
+
+#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -17,9 +24,6 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
-    void on_pushButton_load_clicked();
-
 private:
     Ui::MainWindow *ui;
 
@@ -31,14 +35,30 @@ private:
         PageScene();
 
         QGraphicsPixmapItem* mPixmap = nullptr;
-        QGraphicsRectItem* mSelrect = nullptr;
-
         void setImage(QImage image);
+
+        void setSelRect(QRectF rect);
+        QRectF getSelRect();
+        void showSelRect(bool show);
+
+    private:
+        QGraphicsRectItem* mSelrect = nullptr;
+        void initSelRect();
     };
     typedef QSharedPointer<PageScene> PageScenePtr;
 
-    QList<PageScenePtr> pages;
-    int currentPage = -1;
+    struct Document
+    {
+        QString name;
+        QString filepath;
+        QList<PageScenePtr> pages;
+    };
+    typedef QSharedPointer<Document> DocumentPtr;
+
+    DocumentPtr currentDoc;
+    int currentPage;
+
+    QList<DocumentPtr> documents;
 
     void setupGraphicsView();
     bool mIsCropping = false;
@@ -46,17 +66,31 @@ private:
     int mSelrectEdge = 0;
     QPointF mSelStart;
 
-    void viewPage(int index);
+    void viewPage(DocumentPtr doc, int pageIndex);
     void scaleScene();
+
+    QJsonObject rectToJson(QRectF rect);
+    QRectF jsonToRect(QJsonObject obj);
+
+    void clearSession();
+    void loadPdf(DocumentPtr doc);
+
+    QScopedPointer<Breadcrumbs> docCrumbs;
+    QScopedPointer<Breadcrumbs> pageCrumbs;
+
+    void updateBreadcrumbs();
 
 private slots:
     void onGraphicsViewLeftMouseDragStart(QPointF pos);
     void onGraphicsViewLeftMouseDrag(QPointF pos);
     void onGraphicsViewLeftMouseDragEnd(QPointF pos);
     void onGraphicsViewResized();
-    void on_pushButton_crop_clicked();
     void on_action_Debug_Console_triggered();
-    void on_pushButton_next_clicked();
-    void on_pushButton_prev_clicked();
+    void on_action_Next_Page_triggered();
+    void on_action_Previous_Page_triggered();
+    void on_action_Crop_triggered();
+    void on_action_Add_Document_triggered();
+    void on_action_Save_Session_triggered();
+    void on_action_Open_Session_triggered();
 };
 #endif // MAINWINDOW_H

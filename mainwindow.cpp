@@ -1,9 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "version.h"
+
 #include <QFileDialog>
-#include <QPdfDocument>
 #include <QGraphicsPixmapItem>
+#include <QPdfDocument>
+#include <QScreen>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,42 +14,16 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->stackedWidget->setCurrentWidget(ui->page_main);
+    setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
 
+    ui->stackedWidget->setCurrentWidget(ui->page_main);
+    updateBreadcrumbs();
     setupGraphicsView();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::on_pushButton_load_clicked()
-{
-    QString filepath = QFileDialog::getOpenFileName(this);
-    if (filepath.isEmpty()) { return; }
-
-    ui->lineEdit_path->setText(filepath);
-
-    QPdfDocument pdf;
-    print("Loading " + filepath);
-    QPdfDocument::DocumentError error = pdf.load(filepath);
-    print(QString("Load result: %1").arg(QVariant::fromValue(error).toString()));
-
-    print(QString("Pages: %1").arg(pdf.pageCount()));
-    for (int i=0; i < pdf.pageCount(); i++) {
-        QSizeF size = pdf.pageSize(i);
-        print(QString("    %1: %2x%3")
-              .arg(i)
-              .arg(size.width()).arg(size.height()));
-
-        QImage im = pdf.render(i, pdf.pageSize(0).toSize() * 2);
-        PageScenePtr page(new PageScene());
-        page->setImage(im);
-        pages.append(page);
-    }
-
-    viewPage(1);
 }
 
 void MainWindow::print(QString msg)
@@ -56,6 +33,9 @@ void MainWindow::print(QString msg)
 
 void MainWindow::setupGraphicsView()
 {
+    //ui->graphicsView->setRenderHint(QPainter::Antialiasing, true);
+    //ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform, true);
+
     // Mouse event signals/slots
     connect(ui->graphicsView, &GraphicsView::leftMouseDragStart,
             this, &MainWindow::onGraphicsViewLeftMouseDragStart);
@@ -67,55 +47,156 @@ void MainWindow::setupGraphicsView()
             this, &MainWindow::onGraphicsViewResized);
 }
 
-void MainWindow::viewPage(int index)
+void MainWindow::viewPage(DocumentPtr doc, int pageIndex)
 {
-    PageScenePtr page = pages.value(index);
+    if (!doc) { return; }
+
+    PageScenePtr page = doc->pages.value(pageIndex);
     if (!page) { return; }
 
     ui->graphicsView->setScene(page.data());
     QMetaObject::invokeMethod(this, &MainWindow::scaleScene, Qt::QueuedConnection);
-    currentPage = index;
+
+    currentDoc = doc;
+    currentPage = pageIndex;
+    updateBreadcrumbs();
 }
 
 void MainWindow::scaleScene()
 {
-    PageScenePtr page = pages.value(currentPage);
+    if (!currentDoc) { return; }
+    PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
     QRectF rect;
     if (mIsCropping) {
         rect = page->mPixmap->boundingRect();
     } else {
-        rect = page->mSelrect->rect();
+        rect = page->getSelRect();
     }
 
     ui->graphicsView->fitInView(rect, Qt::KeepAspectRatio);
     ui->graphicsView->centerOn(rect.center());
 }
 
+QJsonObject MainWindow::rectToJson(QRectF rect)
+{
+    QJsonObject obj;
+    obj.insert("xTopLeft", rect.topLeft().x());
+    obj.insert("yTopLeft", rect.topLeft().y());
+    obj.insert("xBotRight", rect.bottomRight().x());
+    obj.insert("yBotRight", rect.bottomRight().y());
+    return obj;
+}
+
+QRectF MainWindow::jsonToRect(QJsonObject obj)
+{
+    QRectF rect(
+                QPointF(obj.value("xTopLeft").toDouble(),
+                        obj.value("yTopLeft").toDouble()),
+                QPointF(obj.value("xBotRight").toDouble(),
+                        obj.value("yBotRight").toDouble()));
+    return rect;
+}
+
+void MainWindow::clearSession()
+{
+    currentDoc.reset();
+    currentPage = 0;
+    documents.clear();
+    updateBreadcrumbs();
+}
+
+void MainWindow::loadPdf(DocumentPtr doc)
+{
+    if (!doc) { return; }
+
+    QPdfDocument pdf;
+    print("Loading " + doc->filepath);
+    QPdfDocument::DocumentError error = pdf.load(doc->filepath);
+    print(QString("Load result: %1").arg(QVariant::fromValue(error).toString()));
+
+    print(QString("Pages: %1").arg(pdf.pageCount()));
+    for (int i=0; i < pdf.pageCount(); i++) {
+        QSizeF size = pdf.pageSize(i);
+        print(QString("    %1: %2x%3")
+              .arg(i)
+              .arg(size.width()).arg(size.height()));
+
+        QImage im = pdf.render(i, size.toSize() * 2);
+        PageScenePtr page = doc->pages.value(i);
+        if (!page) {
+            print("Page doesn't exist, creating new");
+            page.reset(new PageScene());
+            doc->pages.append(page);
+        }
+        page->setImage(im);
+    }
+}
+
+void MainWindow::updateBreadcrumbs()
+{
+    if (!docCrumbs) {
+        docCrumbs.reset(new Breadcrumbs(this,
+                                        ui->horizontalLayout_docs,
+                                        ui->pushButton_noDocs,
+                                        "Doc"));
+        connect(docCrumbs.data(), &Breadcrumbs::breadcrumbClicked,
+                this, [=](int index)
+        {
+            DocumentPtr doc = documents.value(index);
+            if (!doc) { return; }
+            viewPage(doc, 0);
+        });
+    }
+    docCrumbs->setBounds(documents.count(), documents.indexOf(currentDoc));
+
+    if (!pageCrumbs) {
+        pageCrumbs.reset(new Breadcrumbs(this,
+                                         ui->horizontalLayout_pages,
+                                         ui->pushButton_noPages,
+                                         "Page"));
+        connect(pageCrumbs.data(), &Breadcrumbs::breadcrumbClicked,
+                this, [=](int index)
+        {
+            if (!currentDoc) { return; }
+            viewPage(currentDoc, index);
+        });
+    }
+
+    int pageCount = 0;
+    if (currentDoc) {
+        pageCount = currentDoc->pages.count();
+    }
+    pageCrumbs->setBounds(pageCount, currentPage);
+}
+
 void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 {
     mGraphicsViewLeftMouseDown = true;
 
-    PageScenePtr page = pages.value(currentPage);
+    if (!currentDoc) { return; }
+    PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
-    int edge = 0; // left, right, top, bottom
-    qreal dist = qAbs(pos.x() - page->mSelrect->rect().left());
+    QRectF selrect = page->getSelRect();
 
-    qreal d2 = qAbs(pos.x() - page->mSelrect->rect().right());
+    int edge = 0; // left, right, top, bottom
+    qreal dist = qAbs(pos.x() - selrect.left());
+
+    qreal d2 = qAbs(pos.x() - selrect.right());
     if (d2 < dist) {
         dist = d2;
         edge = 1;
     }
 
-    d2 = qAbs(pos.y() - page->mSelrect->rect().top());
+    d2 = qAbs(pos.y() - selrect.top());
     if (d2 < dist) {
         dist = d2;
         edge = 2;
     }
 
-    d2 = qAbs(pos.y() - page->mSelrect->rect().bottom());
+    d2 = qAbs(pos.y() - selrect.bottom());
     if (d2 < dist) {
         dist = d2;
         edge = 3;
@@ -130,7 +211,8 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
     if (!mGraphicsViewLeftMouseDown) { return; }
     if (!mIsCropping) { return; }
 
-    PageScenePtr page = pages.value(currentPage);
+    if (!currentDoc) { return; }
+    PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
     qreal dist;
@@ -142,7 +224,7 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
         dist = pos.y() - mSelStart.y();
     }
 
-    QRectF rect = page->mSelrect->rect();
+    QRectF rect = page->getSelRect();
     switch (mSelrectEdge) {
     case 0:
         rect.setLeft(rect.left() + dist);
@@ -157,7 +239,7 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
         rect.setBottom(rect.bottom() + dist);
         break;
     }
-    page->mSelrect->setRect(rect);
+    page->setSelRect(rect);
 
     mSelStart = pos;
 }
@@ -172,18 +254,6 @@ void MainWindow::onGraphicsViewResized()
     scaleScene();
 }
 
-void MainWindow::on_pushButton_crop_clicked()
-{
-    mIsCropping = ui->pushButton_crop->isChecked();
-
-    PageScenePtr page = pages.value(currentPage);
-    if (!page) { return; }
-
-    page->mSelrect->setVisible(mIsCropping);
-
-    scaleScene();
-}
-
 void MainWindow::on_action_Debug_Console_triggered()
 {
     if (ui->action_Debug_Console->isChecked()) {
@@ -193,21 +263,45 @@ void MainWindow::on_action_Debug_Console_triggered()
     }
 }
 
-void MainWindow::on_pushButton_next_clicked()
-{
-    viewPage(currentPage + 1);
-}
-
-void MainWindow::on_pushButton_prev_clicked()
-{
-    viewPage(currentPage - 1);
-}
-
-
 MainWindow::PageScene::PageScene()
 {
-    // Add selection box
-    mSelrect = new QGraphicsRectItem(-50, -50, 100, 100);
+    setBackgroundBrush(QBrush(Qt::white));
+}
+
+void MainWindow::PageScene::setImage(QImage image)
+{
+    mPixmap = this->addPixmap(QPixmap::fromImage(image));
+}
+
+void MainWindow::PageScene::setSelRect(QRectF rect)
+{
+    if (!mSelrect) { initSelRect(); }
+    mSelrect->setRect(rect);
+}
+
+QRectF MainWindow::PageScene::getSelRect()
+{
+    if (!mSelrect) { initSelRect(); }
+    return mSelrect->rect();
+}
+
+void MainWindow::PageScene::showSelRect(bool show)
+{
+    if (show) {
+        if (!mSelrect) { initSelRect(); }
+        mSelrect->show();
+    } else {
+        if (mSelrect) { mSelrect->hide(); }
+    }
+}
+
+void MainWindow::PageScene::initSelRect()
+{
+    QRectF rect;
+    if (mPixmap) {
+        rect = mPixmap->boundingRect();
+    }
+    mSelrect = new QGraphicsRectItem(rect);
     mSelrect->setPen(QPen(Qt::blue, 2)); // Set blue border
     QColor fillColor(Qt::blue);
     fillColor.setAlphaF(0.5);
@@ -219,8 +313,147 @@ MainWindow::PageScene::PageScene()
     mSelrect->hide();
 }
 
-void MainWindow::PageScene::setImage(QImage image)
+void MainWindow::on_action_Next_Page_triggered()
 {
-    mPixmap = this->addPixmap(QPixmap::fromImage(image));
-    mSelrect->setRect(mPixmap->boundingRect());
+    if (!currentDoc) { return; }
+
+    int ipage = currentPage + 1;
+    if (ipage >= currentDoc->pages.count()) {
+        // End of document. Go to next.
+        DocumentPtr doc = documents.value(documents.indexOf(currentDoc) + 1);
+        if (!doc) { return; }
+        viewPage(doc, 0);
+    } else {
+        viewPage(currentDoc, ipage);
+    }
 }
+
+void MainWindow::on_action_Previous_Page_triggered()
+{
+    if (!currentDoc) { return; }
+
+    int ipage = currentPage - 1;
+    if (ipage < 0) {
+        // Start of document. Go to previous.
+        DocumentPtr doc = documents.value(documents.indexOf(currentDoc) - 1);
+        if (!doc) { return; }
+        viewPage(doc, doc->pages.count() - 1);
+    } else {
+        viewPage(currentDoc, ipage);
+    }
+}
+
+void MainWindow::on_action_Crop_triggered()
+{
+    mIsCropping = ui->action_Crop->isChecked();
+
+    if (!currentDoc) { return; }
+    PageScenePtr page = currentDoc->pages.value(currentPage);
+    if (!page) { return; }
+
+    page->showSelRect(mIsCropping);
+
+    scaleScene();
+}
+
+void MainWindow::on_action_Add_Document_triggered()
+{
+    QString filepath = QFileDialog::getOpenFileName(this);
+    if (filepath.isEmpty()) { return; }
+
+    DocumentPtr doc(new Document());
+    doc->name = QFileInfo(filepath).baseName();
+    doc->filepath = filepath;
+    documents.append(doc);
+    updateBreadcrumbs();
+
+    loadPdf(doc);
+
+    viewPage(doc, 0);
+}
+
+void MainWindow::on_action_Save_Session_triggered()
+{
+    QString filepath = QFileDialog::getSaveFileName(this);
+    if (filepath.isEmpty()) { return; }
+
+    QJsonArray jdocs;
+    foreach (DocumentPtr doc, documents) {
+        QJsonObject jdoc;
+        jdoc.insert("name", doc->name);
+        jdoc.insert("filepath", doc->filepath);
+        QJsonArray jpages;
+        foreach (PageScenePtr page, doc->pages) {
+            QJsonObject jpage;
+            jpage.insert("rect", rectToJson(page->getSelRect()));
+            jpages.append(jpage);
+        }
+        jdoc.insert("pages", jpages);
+        jdocs.append(jdoc);
+    }
+
+    QJsonDocument jout;
+    jout.setArray(jdocs);
+    QByteArray json = jout.toJson();
+
+    QFile f(filepath);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(json);
+        f.close();
+        print("Wrote session to file " + filepath);
+    } else {
+        print(QString("Error opening file for writing: %1: %2")
+              .arg(filepath)
+              .arg(f.errorString()));
+    }
+}
+
+void MainWindow::on_action_Open_Session_triggered()
+{
+    QString filepath = QFileDialog::getOpenFileName(this);
+    if (filepath.isEmpty()) { return; }
+
+    // Clear current session
+    clearSession();
+
+    // Read file
+    QByteArray data;
+    QFile f(filepath);
+    if (f.open(QIODevice::ReadOnly)) {
+        data = f.readAll();
+        f.close();
+        print("Read session file " + filepath);
+    } else {
+        print(QString("Error opening file for reading: %1: %2")
+              .arg(filepath)
+              .arg(f.errorString()));
+        return;
+    }
+
+    // Create documents from JSON
+    QJsonDocument jin = QJsonDocument::fromJson(data);
+    QJsonArray jdocs = jin.array();
+    foreach (QJsonValue jval, jdocs) {
+        QJsonObject jdoc = jval.toObject();
+        DocumentPtr doc(new Document());
+        doc->name = jdoc.value("name").toString();
+        doc->filepath = jdoc.value("filepath").toString();
+        QJsonArray jpages = jdoc.value("pages").toArray();
+        foreach (QJsonValue jvpage, jpages) {
+            QJsonObject jpage = jvpage.toObject();
+            PageScenePtr page(new PageScene());
+            page->setSelRect(jsonToRect(jpage.value("rect").toObject()));
+            doc->pages.append(page);
+            updateBreadcrumbs();
+        }
+        documents.append(doc);
+    }
+
+    // Load PDFs
+    foreach (DocumentPtr doc, documents) {
+        loadPdf(doc);
+    }
+
+    viewPage(documents.value(0), 0);
+}
+
