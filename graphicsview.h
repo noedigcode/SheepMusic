@@ -12,6 +12,7 @@ public:
     GraphicsView(QWidget *parent = nullptr);
 
 signals:
+    void leftClick(QPointF pos);
     void leftMouseDragStart(QPointF pos);
     void leftMouseDrag(QPointF pos);
     void leftMouseDragEnd(QPointF pos);
@@ -30,6 +31,7 @@ protected:
     void mousePressEvent(QMouseEvent *event)
     {
         if (event->buttons() & Qt::LeftButton) {
+            emit leftClick(mapToScene(event->pos()));
             emit leftMouseDragStart(mapToScene(event->pos()));
         }
 

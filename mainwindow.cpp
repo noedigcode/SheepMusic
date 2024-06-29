@@ -37,6 +37,8 @@ void MainWindow::setupGraphicsView()
     //ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform, true);
 
     // Mouse event signals/slots
+    connect(ui->graphicsView, &GraphicsView::leftClick,
+            this, &MainWindow::onGraphicsViewLeftClick);
     connect(ui->graphicsView, &GraphicsView::leftMouseDragStart,
             this, &MainWindow::onGraphicsViewLeftMouseDragStart);
     connect(ui->graphicsView, &GraphicsView::leftMouseDrag,
@@ -171,9 +173,24 @@ void MainWindow::updateBreadcrumbs()
     pageCrumbs->setBounds(pageCount, currentPage);
 }
 
+void MainWindow::onGraphicsViewLeftClick(QPointF pos)
+{
+
+}
+
 void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 {
     mGraphicsViewLeftMouseDown = true;
+
+    if (!mIsCropping) {
+        QRectF rect = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->geometry()).boundingRect();
+        if (pos.x() < rect.x() + rect.width()*0.33) {
+            on_action_Previous_Page_triggered();
+        } else if (pos.x() > rect.x() + rect.width()*0.66) {
+            on_action_Next_Page_triggered();
+        }
+        return;
+    }
 
     if (!currentDoc) { return; }
     PageScenePtr page = currentDoc->pages.value(currentPage);

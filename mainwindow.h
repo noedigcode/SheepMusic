@@ -81,6 +81,7 @@ private:
     void updateBreadcrumbs();
 
 private slots:
+    void onGraphicsViewLeftClick(QPointF pos);
     void onGraphicsViewLeftMouseDragStart(QPointF pos);
     void onGraphicsViewLeftMouseDrag(QPointF pos);
     void onGraphicsViewLeftMouseDragEnd(QPointF pos);
