@@ -1,7 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "breadcrumbs.h"
+#include "settings.h"
+#include "version.h"
 
 #include <QGraphicsScene>
 #include <QJsonArray>
@@ -24,10 +25,19 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void openSession(QString filepath);
+    void saveSession(QString filepath);
+    void setFullscreen(bool fullscreen);
+
 private:
     Ui::MainWindow *ui;
 
     void print(QString msg);
+
+    Settings settings {"Noedigcode", "noedigcode.co.za", APP_NAME, APP_VERSION};
+    void setupSettings();
+
+    // -------------------------------------------------------------------------
 
     class PageScene : public QGraphicsScene
     {
@@ -69,15 +79,17 @@ private:
     void viewPage(DocumentPtr doc, int pageIndex);
     void scaleScene();
 
+    // -------------------------------------------------------------------------
+
     QJsonObject rectToJson(QRectF rect);
     QRectF jsonToRect(QJsonObject obj);
 
     void clearSession();
     void loadPdf(DocumentPtr doc);
 
-    QScopedPointer<Breadcrumbs> docCrumbs;
-    QScopedPointer<Breadcrumbs> pageCrumbs;
+    // -------------------------------------------------------------------------
 
+    void setupBreadcrumbs();
     void updateBreadcrumbs();
 
 private slots:
@@ -93,5 +105,11 @@ private slots:
     void on_action_Add_Document_triggered();
     void on_action_Save_Session_triggered();
     void on_action_Open_Session_triggered();
+    void on_action_Fullscreen_triggered();
+    void on_action_Quit_triggered();
+
+    // QWidget interface
+protected:
+    void closeEvent(QCloseEvent* event) override;
 };
 #endif // MAINWINDOW_H

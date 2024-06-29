@@ -28,7 +28,14 @@ protected:
         QGraphicsView::mouseMoveEvent(event);
     }
 
-    void mousePressEvent(QMouseEvent *event)
+    void mouseDoubleClickEvent(QMouseEvent *event) override
+    {
+        if (event->buttons() & Qt::LeftButton) {
+            mousePressEvent(event);
+        }
+    }
+
+    void mousePressEvent(QMouseEvent *event) override
     {
         if (event->buttons() & Qt::LeftButton) {
             emit leftClick(mapToScene(event->pos()));
@@ -38,7 +45,7 @@ protected:
         QGraphicsView::mousePressEvent(event);
     }
 
-    void mouseReleaseEvent(QMouseEvent *event)
+    void mouseReleaseEvent(QMouseEvent *event) override
     {
         if (event->buttons() & Qt::LeftButton) {
             emit leftMouseDragEnd(mapToScene(event->pos()));

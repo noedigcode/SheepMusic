@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/icons8-crop-96.png</file>
+        <file>images/icons8-exit-sign-96.png</file>
+        <file>images/icons8-new-copy-96.png</file>
+        <file>images/icons8-next-96.png</file>
+        <file>images/icons8-opened-folder-96.png</file>
+        <file>images/icons8-previous-96.png</file>
+        <file>images/icons8-save-96.png</file>
+        <file>images/icons8-screen-96.png</file>
+    </qresource>
+</RCC>

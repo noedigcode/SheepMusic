@@ -1,10 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "version.h"
-
 #include <QFileDialog>
 #include <QGraphicsPixmapItem>
+#include <QMessageBox>
 #include <QPdfDocument>
 #include <QScreen>
 
@@ -14,16 +13,120 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    setFullscreen(settings.fullscreen.value().toBool());
+
     setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
 
     ui->stackedWidget->setCurrentWidget(ui->page_main);
+    setupBreadcrumbs();
     updateBreadcrumbs();
     setupGraphicsView();
+
+    QString lastSession = settings.lastSession.string();
+    if (!lastSession.isEmpty()) {
+        openSession(lastSession);
+    }
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::openSession(QString filepath)
+{
+    // Clear current session
+    clearSession();
+
+    // Read file
+    QByteArray data;
+    QFile f(filepath);
+    if (f.open(QIODevice::ReadOnly)) {
+        data = f.readAll();
+        f.close();
+        print("Read session file " + filepath);
+    } else {
+        print(QString("Error opening file for reading: %1: %2")
+              .arg(filepath)
+              .arg(f.errorString()));
+        return;
+    }
+
+    // Create documents from JSON
+    QJsonDocument jin = QJsonDocument::fromJson(data);
+    QJsonArray jdocs = jin.array();
+    foreach (QJsonValue jval, jdocs) {
+        QJsonObject jdoc = jval.toObject();
+        DocumentPtr doc(new Document());
+        doc->name = jdoc.value("name").toString();
+        doc->filepath = jdoc.value("filepath").toString();
+        QJsonArray jpages = jdoc.value("pages").toArray();
+        foreach (QJsonValue jvpage, jpages) {
+            QJsonObject jpage = jvpage.toObject();
+            PageScenePtr page(new PageScene());
+            page->setSelRect(jsonToRect(jpage.value("rect").toObject()));
+            doc->pages.append(page);
+            updateBreadcrumbs();
+        }
+        documents.append(doc);
+    }
+
+    // Load PDFs
+    foreach (DocumentPtr doc, documents) {
+        loadPdf(doc);
+    }
+
+    viewPage(documents.value(0), 0);
+
+    settings.lastSession.set(filepath);
+}
+
+void MainWindow::saveSession(QString filepath)
+{
+    QJsonArray jdocs;
+    foreach (DocumentPtr doc, documents) {
+        QJsonObject jdoc;
+        jdoc.insert("name", doc->name);
+        jdoc.insert("filepath", doc->filepath);
+        QJsonArray jpages;
+        foreach (PageScenePtr page, doc->pages) {
+            QJsonObject jpage;
+            jpage.insert("rect", rectToJson(page->getSelRect()));
+            jpages.append(jpage);
+        }
+        jdoc.insert("pages", jpages);
+        jdocs.append(jdoc);
+    }
+
+    QJsonDocument jout;
+    jout.setArray(jdocs);
+    QByteArray json = jout.toJson();
+
+    QFile f(filepath);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(json);
+        f.close();
+        print("Wrote session to file " + filepath);
+    } else {
+        print(QString("Error opening file for writing: %1: %2")
+              .arg(filepath)
+              .arg(f.errorString()));
+    }
+
+    settings.lastSession.set(filepath);
+}
+
+void MainWindow::setFullscreen(bool fullscreen)
+{
+    if (fullscreen) {
+        setWindowState(Qt::WindowFullScreen);
+    } else {
+        setWindowState(Qt::WindowMaximized);
+    }
+
+    settings.fullscreen.set(fullscreen);
+
+    ui->action_Fullscreen->setChecked(fullscreen);
 }
 
 void MainWindow::print(QString msg)
@@ -77,6 +180,7 @@ void MainWindow::scaleScene()
         rect = page->getSelRect();
     }
 
+    page->showSelRect(mIsCropping);
     ui->graphicsView->fitInView(rect, Qt::KeepAspectRatio);
     ui->graphicsView->centerOn(rect.center());
 }
@@ -136,61 +240,55 @@ void MainWindow::loadPdf(DocumentPtr doc)
     }
 }
 
+void MainWindow::setupBreadcrumbs()
+{
+    connect(ui->widget_docsBreadcrumbs, &BreadcrumbsWidget::breadcrumbClicked,
+            this, [=](int index)
+    {
+        DocumentPtr doc = documents.value(index);
+        if (!doc) { return; }
+        viewPage(doc, 0);
+    });
+
+    connect(ui->widget_pagesBreadcrumbs, &BreadcrumbsWidget::breadcrumbClicked,
+            this, [=](int index)
+    {
+        if (!currentDoc) { return; }
+        viewPage(currentDoc, index);
+    });
+}
+
 void MainWindow::updateBreadcrumbs()
 {
-    if (!docCrumbs) {
-        docCrumbs.reset(new Breadcrumbs(this,
-                                        ui->horizontalLayout_docs,
-                                        ui->pushButton_noDocs,
-                                        "Doc"));
-        connect(docCrumbs.data(), &Breadcrumbs::breadcrumbClicked,
-                this, [=](int index)
-        {
-            DocumentPtr doc = documents.value(index);
-            if (!doc) { return; }
-            viewPage(doc, 0);
-        });
-    }
-    docCrumbs->setBounds(documents.count(), documents.indexOf(currentDoc));
-
-    if (!pageCrumbs) {
-        pageCrumbs.reset(new Breadcrumbs(this,
-                                         ui->horizontalLayout_pages,
-                                         ui->pushButton_noPages,
-                                         "Page"));
-        connect(pageCrumbs.data(), &Breadcrumbs::breadcrumbClicked,
-                this, [=](int index)
-        {
-            if (!currentDoc) { return; }
-            viewPage(currentDoc, index);
-        });
-    }
-
     int pageCount = 0;
     if (currentDoc) {
         pageCount = currentDoc->pages.count();
     }
-    pageCrumbs->setBounds(pageCount, currentPage);
+
+    ui->widget_docsBreadcrumbs->setBounds(
+                documents.count(), documents.indexOf(currentDoc));
+
+    ui->widget_pagesBreadcrumbs->setBounds(pageCount, currentPage);
 }
 
 void MainWindow::onGraphicsViewLeftClick(QPointF pos)
 {
-
+    if (!mIsCropping) {
+        QRectF rect = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->geometry()).boundingRect();
+        if (pos.x() < rect.x() + rect.width()*0.5) {
+            on_action_Previous_Page_triggered();
+        } else if (pos.x() > rect.x() + rect.width()*0.5) {
+            on_action_Next_Page_triggered();
+        }
+        return;
+    }
 }
 
 void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 {
     mGraphicsViewLeftMouseDown = true;
 
-    if (!mIsCropping) {
-        QRectF rect = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->geometry()).boundingRect();
-        if (pos.x() < rect.x() + rect.width()*0.33) {
-            on_action_Previous_Page_triggered();
-        } else if (pos.x() > rect.x() + rect.width()*0.66) {
-            on_action_Next_Page_triggered();
-        }
-        return;
-    }
+    if (!mIsCropping) { return; }
 
     if (!currentDoc) { return; }
     PageScenePtr page = currentDoc->pages.value(currentPage);
@@ -320,7 +418,7 @@ void MainWindow::PageScene::initSelRect()
     }
     mSelrect = new QGraphicsRectItem(rect);
     mSelrect->setPen(QPen(Qt::blue, 2)); // Set blue border
-    QColor fillColor(Qt::blue);
+    QColor fillColor("#676cf5");
     fillColor.setAlphaF(0.5);
     mSelrect->setBrush(fillColor); // Set semi-transparent blue fill
 
@@ -368,8 +466,6 @@ void MainWindow::on_action_Crop_triggered()
     PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
-    page->showSelRect(mIsCropping);
-
     scaleScene();
 }
 
@@ -394,35 +490,7 @@ void MainWindow::on_action_Save_Session_triggered()
     QString filepath = QFileDialog::getSaveFileName(this);
     if (filepath.isEmpty()) { return; }
 
-    QJsonArray jdocs;
-    foreach (DocumentPtr doc, documents) {
-        QJsonObject jdoc;
-        jdoc.insert("name", doc->name);
-        jdoc.insert("filepath", doc->filepath);
-        QJsonArray jpages;
-        foreach (PageScenePtr page, doc->pages) {
-            QJsonObject jpage;
-            jpage.insert("rect", rectToJson(page->getSelRect()));
-            jpages.append(jpage);
-        }
-        jdoc.insert("pages", jpages);
-        jdocs.append(jdoc);
-    }
-
-    QJsonDocument jout;
-    jout.setArray(jdocs);
-    QByteArray json = jout.toJson();
-
-    QFile f(filepath);
-    if (f.open(QIODevice::WriteOnly)) {
-        f.write(json);
-        f.close();
-        print("Wrote session to file " + filepath);
-    } else {
-        print(QString("Error opening file for writing: %1: %2")
-              .arg(filepath)
-              .arg(f.errorString()));
-    }
+    saveSession(filepath);
 }
 
 void MainWindow::on_action_Open_Session_triggered()
@@ -430,47 +498,28 @@ void MainWindow::on_action_Open_Session_triggered()
     QString filepath = QFileDialog::getOpenFileName(this);
     if (filepath.isEmpty()) { return; }
 
-    // Clear current session
-    clearSession();
+    openSession(filepath);
+}
 
-    // Read file
-    QByteArray data;
-    QFile f(filepath);
-    if (f.open(QIODevice::ReadOnly)) {
-        data = f.readAll();
-        f.close();
-        print("Read session file " + filepath);
+
+void MainWindow::on_action_Fullscreen_triggered()
+{
+    setFullscreen(ui->action_Fullscreen->isChecked());
+}
+
+
+void MainWindow::on_action_Quit_triggered()
+{
+    this->close();
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    int button = QMessageBox::question(this, "Quit", "Are you sure you want to quit?");
+    if (button == QMessageBox::Yes) {
+        event->accept();
     } else {
-        print(QString("Error opening file for reading: %1: %2")
-              .arg(filepath)
-              .arg(f.errorString()));
-        return;
+        event->ignore();
     }
-
-    // Create documents from JSON
-    QJsonDocument jin = QJsonDocument::fromJson(data);
-    QJsonArray jdocs = jin.array();
-    foreach (QJsonValue jval, jdocs) {
-        QJsonObject jdoc = jval.toObject();
-        DocumentPtr doc(new Document());
-        doc->name = jdoc.value("name").toString();
-        doc->filepath = jdoc.value("filepath").toString();
-        QJsonArray jpages = jdoc.value("pages").toArray();
-        foreach (QJsonValue jvpage, jpages) {
-            QJsonObject jpage = jvpage.toObject();
-            PageScenePtr page(new PageScene());
-            page->setSelRect(jsonToRect(jpage.value("rect").toObject()));
-            doc->pages.append(page);
-            updateBreadcrumbs();
-        }
-        documents.append(doc);
-    }
-
-    // Load PDFs
-    foreach (DocumentPtr doc, documents) {
-        loadPdf(doc);
-    }
-
-    viewPage(documents.value(0), 0);
 }
 
