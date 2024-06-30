@@ -26,11 +26,15 @@ public:
     ~MainWindow();
 
     void openSession(QString filepath);
-    void saveSession(QString filepath);
+    bool saveSession();
     void setFullscreen(bool fullscreen);
+
+    bool msgBoxYesNo(QString title, QString text);
 
 private:
     Ui::MainWindow *ui;
+
+    void updateWindowTitle();
 
     void print(QString msg);
 
@@ -86,6 +90,13 @@ private:
 
     void clearSession();
     void loadPdf(DocumentPtr doc);
+    bool writeSession(QString filepath);
+    bool canSessionBeClosed();
+
+    QString mSessionFilepath;
+    void setSessionFilepath(QString path);
+    bool mSessionModified = false;
+    void setSessionModified(bool modified);
 
     // -------------------------------------------------------------------------
 
@@ -107,8 +118,8 @@ private slots:
     void on_action_Open_Session_triggered();
     void on_action_Fullscreen_triggered();
     void on_action_Quit_triggered();
+    void on_action_Remove_Document_triggered();
 
-    // QWidget interface
 protected:
     void closeEvent(QCloseEvent* event) override;
 };

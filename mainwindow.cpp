@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QGraphicsPixmapItem>
 #include <QMessageBox>
 #include <QPdfDocument>
@@ -15,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setFullscreen(settings.fullscreen.value().toBool());
 
-    setWindowTitle(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
+    updateWindowTitle();
 
     ui->stackedWidget->setCurrentWidget(ui->page_main);
     setupBreadcrumbs();
@@ -49,6 +50,8 @@ void MainWindow::openSession(QString filepath)
         print(QString("Error opening file for reading: %1: %2")
               .arg(filepath)
               .arg(f.errorString()));
+        QMessageBox::critical(this, "Open Error",
+                "An error occurred and the session could not be opened.");
         return;
     }
 
@@ -78,42 +81,43 @@ void MainWindow::openSession(QString filepath)
 
     viewPage(documents.value(0), 0);
 
+    setSessionFilepath(filepath);
     settings.lastSession.set(filepath);
+    setSessionModified(false);
 }
 
-void MainWindow::saveSession(QString filepath)
+bool MainWindow::saveSession()
 {
-    QJsonArray jdocs;
-    foreach (DocumentPtr doc, documents) {
-        QJsonObject jdoc;
-        jdoc.insert("name", doc->name);
-        jdoc.insert("filepath", doc->filepath);
-        QJsonArray jpages;
-        foreach (PageScenePtr page, doc->pages) {
-            QJsonObject jpage;
-            jpage.insert("rect", rectToJson(page->getSelRect()));
-            jpages.append(jpage);
+    bool saved = false;
+    if (!mSessionFilepath.isEmpty()) {
+        // Try to save to existing file
+        saved = writeSession(mSessionFilepath);
+        if (!saved) {
+            QMessageBox::critical(this, "Save Error",
+                    "An error occurred and the session could not be saved to its current file path.");
         }
-        jdoc.insert("pages", jpages);
-        jdocs.append(jdoc);
     }
 
-    QJsonDocument jout;
-    jout.setArray(jdocs);
-    QByteArray json = jout.toJson();
-
-    QFile f(filepath);
-    if (f.open(QIODevice::WriteOnly)) {
-        f.write(json);
-        f.close();
-        print("Wrote session to file " + filepath);
-    } else {
-        print(QString("Error opening file for writing: %1: %2")
-              .arg(filepath)
-              .arg(f.errorString()));
+    if (!saved) {
+        // Try save-as
+        QString filepath = QFileDialog::getSaveFileName(this);
+        if (!filepath.isEmpty()) {
+            saved = writeSession(filepath);
+            if (saved) {
+                setSessionFilepath(filepath);
+            } else {
+                QMessageBox::critical(this, "Save Error",
+                        "An error occurred and the session could not be saved to the chosen file path.");
+            }
+        }
     }
 
-    settings.lastSession.set(filepath);
+    if (saved) {
+        setSessionModified(false);
+        settings.lastSession.set(mSessionFilepath);
+    }
+
+    return saved;
 }
 
 void MainWindow::setFullscreen(bool fullscreen)
@@ -127,6 +131,24 @@ void MainWindow::setFullscreen(bool fullscreen)
     settings.fullscreen.set(fullscreen);
 
     ui->action_Fullscreen->setChecked(fullscreen);
+}
+
+bool MainWindow::msgBoxYesNo(QString title, QString text)
+{
+    return QMessageBox::question(this, title, text) == QMessageBox::Yes;
+}
+
+void MainWindow::updateWindowTitle()
+{
+    QString sessionText;
+    if (!mSessionFilepath.isEmpty()) {
+        sessionText = QFileInfo(mSessionFilepath).baseName();
+        if (mSessionModified) {
+            sessionText.append("*");
+        }
+        sessionText += " - ";
+    }
+    setWindowTitle(QString("%1%2 %3").arg(sessionText).arg(APP_NAME).arg(APP_VERSION));
 }
 
 void MainWindow::print(QString msg)
@@ -210,7 +232,9 @@ void MainWindow::clearSession()
     currentDoc.reset();
     currentPage = 0;
     documents.clear();
+    ui->graphicsView->setScene(nullptr);
     updateBreadcrumbs();
+    setSessionModified(false);
 }
 
 void MainWindow::loadPdf(DocumentPtr doc)
@@ -238,6 +262,71 @@ void MainWindow::loadPdf(DocumentPtr doc)
         }
         page->setImage(im);
     }
+}
+
+bool MainWindow::writeSession(QString filepath)
+{
+    QJsonArray jdocs;
+    foreach (DocumentPtr doc, documents) {
+        QJsonObject jdoc;
+        jdoc.insert("name", doc->name);
+        jdoc.insert("filepath", doc->filepath);
+        QJsonArray jpages;
+        foreach (PageScenePtr page, doc->pages) {
+            QJsonObject jpage;
+            jpage.insert("rect", rectToJson(page->getSelRect()));
+            jpages.append(jpage);
+        }
+        jdoc.insert("pages", jpages);
+        jdocs.append(jdoc);
+    }
+
+    QJsonDocument jout;
+    jout.setArray(jdocs);
+    QByteArray json = jout.toJson();
+
+    QFile f(filepath);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(json);
+        f.close();
+        print("Wrote session to file " + filepath);
+        return true;
+    } else {
+        print(QString("Error opening file for writing: %1: %2")
+              .arg(filepath)
+              .arg(f.errorString()));
+        return false;
+    }
+}
+
+bool MainWindow::canSessionBeClosed()
+{
+    if (mSessionModified) {
+        int button = QMessageBox::question(this, "Close Session",
+                    "This session has been modified. Do you want to save changes?",
+                    QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+        if (button == QMessageBox::Yes) {
+            return saveSession();
+        } else if (button == QMessageBox::No) {
+            return true;
+        } else {
+            // Cancel
+            return false;
+        }
+    }
+    return true;
+}
+
+void MainWindow::setSessionFilepath(QString path)
+{
+    mSessionFilepath = path;
+    updateWindowTitle();
+}
+
+void MainWindow::setSessionModified(bool modified)
+{
+    mSessionModified = modified;
+    updateWindowTitle();
 }
 
 void MainWindow::setupBreadcrumbs()
@@ -355,6 +444,7 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
         break;
     }
     page->setSelRect(rect);
+    setSessionModified(true);
 
     mSelStart = pos;
 }
@@ -483,30 +573,28 @@ void MainWindow::on_action_Add_Document_triggered()
     loadPdf(doc);
 
     viewPage(doc, 0);
+    setSessionModified(true);
 }
 
 void MainWindow::on_action_Save_Session_triggered()
 {
-    QString filepath = QFileDialog::getSaveFileName(this);
-    if (filepath.isEmpty()) { return; }
-
-    saveSession(filepath);
+    saveSession();
 }
 
 void MainWindow::on_action_Open_Session_triggered()
 {
+    if (!canSessionBeClosed()) { return; }
+
     QString filepath = QFileDialog::getOpenFileName(this);
     if (filepath.isEmpty()) { return; }
 
     openSession(filepath);
 }
 
-
 void MainWindow::on_action_Fullscreen_triggered()
 {
     setFullscreen(ui->action_Fullscreen->isChecked());
 }
-
 
 void MainWindow::on_action_Quit_triggered()
 {
@@ -515,11 +603,38 @@ void MainWindow::on_action_Quit_triggered()
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    int button = QMessageBox::question(this, "Quit", "Are you sure you want to quit?");
-    if (button == QMessageBox::Yes) {
-        event->accept();
+    if (msgBoxYesNo("Quit", "Are you sure you want to quit?")) {
+        if (canSessionBeClosed()) {
+            event->accept();
+        } else {
+            event->ignore();
+        }
     } else {
         event->ignore();
     }
+}
+
+void MainWindow::on_action_Remove_Document_triggered()
+{
+    if (!currentDoc) { return; }
+
+    if (!msgBoxYesNo("Remove file", "Are you sure you want to remove this file?")) {
+        return;
+    }
+
+    int docIndex = documents.indexOf(currentDoc);
+    documents.removeAll(currentDoc);
+
+    if (documents.length()) {
+        // Show previous doc
+        if (docIndex > 0) { docIndex -= 1; }
+        viewPage(documents.value(docIndex), 0);
+    } else {
+        currentDoc.reset();
+        ui->graphicsView->setScene(nullptr);
+        updateBreadcrumbs();
+    }
+
+    setSessionModified(true);
 }
 

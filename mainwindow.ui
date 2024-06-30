@@ -144,6 +144,7 @@
    <addaction name="action_Quit"/>
    <addaction name="separator"/>
    <addaction name="action_Add_Document"/>
+   <addaction name="action_Remove_Document"/>
    <addaction name="separator"/>
    <addaction name="action_Crop"/>
    <addaction name="separator"/>
@@ -236,6 +237,15 @@
    </property>
    <property name="text">
     <string>Quit</string>
+   </property>
+  </action>
+  <action name="action_Remove_Document">
+   <property name="icon">
+    <iconset resource="images.qrc">
+     <normaloff>:/images/icons8-delete-file-96.png</normaloff>:/images/icons8-delete-file-96.png</iconset>
+   </property>
+   <property name="text">
+    <string>Remove Document</string>
    </property>
   </action>
  </widget>
