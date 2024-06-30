@@ -100,7 +100,8 @@ bool MainWindow::saveSession()
 
     if (!saved) {
         // Try save-as
-        QString filepath = QFileDialog::getSaveFileName(this);
+        QString filepath = QFileDialog::getSaveFileName(this, "Save Session",
+                                                QString(), mSessionFileFilter);
         if (!filepath.isEmpty()) {
             saved = writeSession(filepath);
             if (saved) {
@@ -235,6 +236,7 @@ void MainWindow::clearSession()
     ui->graphicsView->setScene(nullptr);
     updateBreadcrumbs();
     setSessionModified(false);
+    setSessionFilepath("");
 }
 
 void MainWindow::loadPdf(DocumentPtr doc)
@@ -561,7 +563,8 @@ void MainWindow::on_action_Crop_triggered()
 
 void MainWindow::on_action_Add_Document_triggered()
 {
-    QString filepath = QFileDialog::getOpenFileName(this);
+    QString filepath = QFileDialog::getOpenFileName(this, "Add Document",
+                                                    QString(), "PDF (*.pdf)");
     if (filepath.isEmpty()) { return; }
 
     DocumentPtr doc(new Document());
@@ -585,7 +588,8 @@ void MainWindow::on_action_Open_Session_triggered()
 {
     if (!canSessionBeClosed()) { return; }
 
-    QString filepath = QFileDialog::getOpenFileName(this);
+    QString filepath = QFileDialog::getOpenFileName(this, "Open Session",
+                                                QString(), mSessionFileFilter);
     if (filepath.isEmpty()) { return; }
 
     openSession(filepath);
@@ -636,5 +640,12 @@ void MainWindow::on_action_Remove_Document_triggered()
     }
 
     setSessionModified(true);
+}
+
+void MainWindow::on_action_New_Session_triggered()
+{
+    if (!canSessionBeClosed()) { return; }
+
+    clearSession();
 }
 

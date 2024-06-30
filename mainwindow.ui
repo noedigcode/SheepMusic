@@ -141,6 +141,7 @@
    </attribute>
    <addaction name="action_Save_Session"/>
    <addaction name="action_Open_Session"/>
+   <addaction name="action_New_Session"/>
    <addaction name="action_Quit"/>
    <addaction name="separator"/>
    <addaction name="action_Add_Document"/>
@@ -246,6 +247,15 @@
    </property>
    <property name="text">
     <string>Remove Document</string>
+   </property>
+  </action>
+  <action name="action_New_Session">
+   <property name="icon">
+    <iconset resource="images.qrc">
+     <normaloff>:/images/icons8-new-file-96.png</normaloff>:/images/icons8-new-file-96.png</iconset>
+   </property>
+   <property name="text">
+    <string>New Session</string>
    </property>
   </action>
  </widget>

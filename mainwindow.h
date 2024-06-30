@@ -88,6 +88,8 @@ private:
     QJsonObject rectToJson(QRectF rect);
     QRectF jsonToRect(QJsonObject obj);
 
+    const QString mSessionFileFilter = "Sheet Sessions (*.sheets)";
+
     void clearSession();
     void loadPdf(DocumentPtr doc);
     bool writeSession(QString filepath);
@@ -119,6 +121,7 @@ private slots:
     void on_action_Fullscreen_triggered();
     void on_action_Quit_triggered();
     void on_action_Remove_Document_triggered();
+    void on_action_New_Session_triggered();
 
 protected:
     void closeEvent(QCloseEvent* event) override;
