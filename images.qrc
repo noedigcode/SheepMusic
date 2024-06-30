@@ -11,5 +11,9 @@
         <file>images/icons8-music-book-96.png</file>
         <file>images/icons8-delete-file-96.png</file>
         <file>images/icons8-new-file-96.png</file>
+        <file>images/icons8-up-96.png</file>
+        <file>images/icons8-down-96.png</file>
+        <file>images/icons8-sorting-96.png</file>
+        <file>images/icons8-view-96.png</file>
     </qresource>
 </RCC>

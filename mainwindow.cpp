@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     updateWindowTitle();
 
-    ui->stackedWidget->setCurrentWidget(ui->page_main);
+    showMainPagesView();
     setupBreadcrumbs();
     updateBreadcrumbs();
     setupGraphicsView();
@@ -75,7 +75,7 @@ void MainWindow::openSession(QString filepath)
     }
 
     // Load PDFs
-    foreach (DocumentPtr doc, documents) {
+    foreach (DocumentPtr doc, documents.all()) {
         loadPdf(doc);
     }
 
@@ -150,6 +150,16 @@ void MainWindow::updateWindowTitle()
         sessionText += " - ";
     }
     setWindowTitle(QString("%1%2 %3").arg(sessionText).arg(APP_NAME).arg(APP_VERSION));
+}
+
+void MainWindow::showMainPagesView()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_main);
+}
+
+void MainWindow::showDocOrderView()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_orderDocs);
 }
 
 void MainWindow::print(QString msg)
@@ -269,7 +279,7 @@ void MainWindow::loadPdf(DocumentPtr doc)
 bool MainWindow::writeSession(QString filepath)
 {
     QJsonArray jdocs;
-    foreach (DocumentPtr doc, documents) {
+    foreach (DocumentPtr doc, documents.all()) {
         QJsonObject jdoc;
         jdoc.insert("name", doc->name);
         jdoc.insert("filepath", doc->filepath);
@@ -329,6 +339,30 @@ void MainWindow::setSessionModified(bool modified)
 {
     mSessionModified = modified;
     updateWindowTitle();
+}
+
+void MainWindow::updateDocOrderList_appended(DocumentPtr doc)
+{
+    ui->listWidget_docs->addItem(doc->name);
+}
+
+void MainWindow::updateDocOrderList_cleared()
+{
+    ui->listWidget_docs->clear();
+}
+
+void MainWindow::updateDocOrderList_removed(int index)
+{
+    QListWidgetItem* item = ui->listWidget_docs->item(index);
+    if (item) { delete item; }
+}
+
+void MainWindow::updateDocOrderList_moved(int from, int to)
+{
+    QListWidgetItem* item = ui->listWidget_docs->takeItem(from);
+    if (!item) { return; }
+
+    ui->listWidget_docs->insertItem(to, item);
 }
 
 void MainWindow::setupBreadcrumbs()
@@ -627,9 +661,9 @@ void MainWindow::on_action_Remove_Document_triggered()
     }
 
     int docIndex = documents.indexOf(currentDoc);
-    documents.removeAll(currentDoc);
+    documents.remove(currentDoc);
 
-    if (documents.length()) {
+    if (documents.count()) {
         // Show previous doc
         if (docIndex > 0) { docIndex -= 1; }
         viewPage(documents.value(docIndex), 0);
@@ -647,5 +681,76 @@ void MainWindow::on_action_New_Session_triggered()
     if (!canSessionBeClosed()) { return; }
 
     clearSession();
+}
+
+void MainWindow::on_action_Order_Documents_triggered()
+{
+    if (ui->action_Order_Documents->isChecked()) {
+        showDocOrderView();
+    } else {
+        showMainPagesView();
+    }
+}
+
+void MainWindow::on_stackedWidget_currentChanged(int /*arg1*/)
+{
+    QWidget* screen = ui->stackedWidget->currentWidget();
+
+    ui->action_Debug_Console->setChecked(screen == ui->page_console);
+    ui->action_Order_Documents->setChecked(screen == ui->page_orderDocs);
+
+    bool enable = (screen == ui->page_main);
+    ui->action_Crop->setEnabled(enable);
+    ui->action_Next_Page->setEnabled(enable);
+    ui->action_Previous_Page->setEnabled(enable);
+    ui->action_Remove_Document->setEnabled(enable);
+}
+
+void MainWindow::on_toolButton_doc_down_clicked()
+{
+    QListWidgetItem* item = ui->listWidget_docs->currentItem();
+
+    int from = ui->listWidget_docs->currentRow();
+    if (from < 0) { return; }
+    int to = from + 1;
+    // Wrap around to
+    if (to < 0) { to = documents.count() - 1; }
+    if (to >= documents.count()) { to = 0; }
+
+    documents.move(from, to);
+    setSessionModified(true);
+
+    // Keep moved item selected
+    ui->listWidget_docs->setCurrentItem(item);
+}
+
+void MainWindow::on_toolButton_doc_up_clicked()
+{
+    QListWidgetItem* item = ui->listWidget_docs->currentItem();
+
+    int from = ui->listWidget_docs->currentRow();
+    if (from < 0) { return; }
+    int to = from - 1;
+    // Wrap around to
+    if (to < 0) { to = documents.count() - 1; }
+    if (to >= documents.count()) { to = 0; }
+
+    documents.move(from, to);
+    setSessionModified(true);
+
+    // Keep moved item selected
+    ui->listWidget_docs->setCurrentItem(item);
+}
+
+void MainWindow::on_toolButton_doc_view_clicked()
+{
+    int index = ui->listWidget_docs->currentRow();
+    if (index < 0) { return; }
+
+    DocumentPtr doc = documents.value(index);
+    if (!doc) { return; }
+
+    viewPage(doc, 0);
+    showMainPagesView();
 }
 
