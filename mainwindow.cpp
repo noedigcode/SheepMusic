@@ -399,91 +399,113 @@ void MainWindow::updateBreadcrumbs()
 
 void MainWindow::onGraphicsViewLeftClick(QPointF pos)
 {
-    if (!mIsCropping) {
-        QRectF rect = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->geometry()).boundingRect();
-        if (pos.x() < rect.x() + rect.width()*0.5) {
-            on_action_Previous_Page_triggered();
-        } else if (pos.x() > rect.x() + rect.width()*0.5) {
-            on_action_Next_Page_triggered();
-        }
-        return;
+    if (mIsCropping) { return; }
+    if (mIsDrawing) { return; }
+
+    QRectF rect = ui->graphicsView->mapToScene(ui->graphicsView->viewport()->geometry()).boundingRect();
+    if (pos.x() < rect.x() + rect.width()*0.5) {
+        on_action_Previous_Page_triggered();
+    } else if (pos.x() > rect.x() + rect.width()*0.5) {
+        on_action_Next_Page_triggered();
     }
+    return;
 }
 
 void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 {
     mGraphicsViewLeftMouseDown = true;
 
-    if (!mIsCropping) { return; }
-
     if (!currentDoc) { return; }
     PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
-    QRectF selrect = page->getSelRect();
+    if (mIsCropping) {
 
-    int edge = 0; // left, right, top, bottom
-    qreal dist = qAbs(pos.x() - selrect.left());
+        QRectF selrect = page->getSelRect();
 
-    qreal d2 = qAbs(pos.x() - selrect.right());
-    if (d2 < dist) {
-        dist = d2;
-        edge = 1;
+        int edge = 0; // left, right, top, bottom
+        qreal dist = qAbs(pos.x() - selrect.left());
+
+        qreal d2 = qAbs(pos.x() - selrect.right());
+        if (d2 < dist) {
+            dist = d2;
+            edge = 1;
+        }
+
+        d2 = qAbs(pos.y() - selrect.top());
+        if (d2 < dist) {
+            dist = d2;
+            edge = 2;
+        }
+
+        d2 = qAbs(pos.y() - selrect.bottom());
+        if (d2 < dist) {
+            dist = d2;
+            edge = 3;
+        }
+
+        mSelrectEdge = edge;
+        mSelStart = pos;
+
+    } else if (mIsDrawing) {
+
+        mDrawPath = QPainterPath(pos);
+        mScenePath = new QGraphicsPathItem();
+        QPen pen;
+        pen.setCosmetic(true);
+        pen.setColor(Qt::red);
+        pen.setWidth(2);
+        mScenePath->setPen(pen);
+        page->addItem(mScenePath);
+
     }
-
-    d2 = qAbs(pos.y() - selrect.top());
-    if (d2 < dist) {
-        dist = d2;
-        edge = 2;
-    }
-
-    d2 = qAbs(pos.y() - selrect.bottom());
-    if (d2 < dist) {
-        dist = d2;
-        edge = 3;
-    }
-
-    mSelrectEdge = edge;
-    mSelStart = pos;
 }
 
 void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
 {
     if (!mGraphicsViewLeftMouseDown) { return; }
-    if (!mIsCropping) { return; }
 
     if (!currentDoc) { return; }
     PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
-    qreal dist;
-    if (mSelrectEdge <= 1) {
-        // Left/right
-        dist = pos.x() - mSelStart.x();
-    } else {
-        // Up/down
-        dist = pos.y() - mSelStart.y();
-    }
+    if (mIsCropping) {
 
-    QRectF rect = page->getSelRect();
-    switch (mSelrectEdge) {
-    case 0:
-        rect.setLeft(rect.left() + dist);
-        break;
-    case 1:
-        rect.setRight(rect.right() + dist);
-        break;
-    case 2:
-        rect.setTop(rect.top() + dist);
-        break;
-    case 3:
-        rect.setBottom(rect.bottom() + dist);
-        break;
-    }
-    page->setSelRect(rect);
-    setSessionModified(true);
+        qreal dist;
+        if (mSelrectEdge <= 1) {
+            // Left/right
+            dist = pos.x() - mSelStart.x();
+        } else {
+            // Up/down
+            dist = pos.y() - mSelStart.y();
+        }
 
-    mSelStart = pos;
+        QRectF rect = page->getSelRect();
+        switch (mSelrectEdge) {
+        case 0:
+            rect.setLeft(rect.left() + dist);
+            break;
+        case 1:
+            rect.setRight(rect.right() + dist);
+            break;
+        case 2:
+            rect.setTop(rect.top() + dist);
+            break;
+        case 3:
+            rect.setBottom(rect.bottom() + dist);
+            break;
+        }
+        page->setSelRect(rect);
+        setSessionModified(true);
+
+        mSelStart = pos;
+
+    } else if (mIsDrawing) {
+
+        mDrawPath.lineTo(pos);
+        mScenePath->setPath(mDrawPath);
+
+    }
 }
 
 void MainWindow::onGraphicsViewLeftMouseDragEnd(QPointF /*pos*/)
@@ -753,5 +775,11 @@ void MainWindow::on_toolButton_doc_view_clicked()
 
     viewPage(doc, 0);
     showMainPagesView();
+}
+
+
+void MainWindow::on_action_Draw_triggered()
+{
+    mIsDrawing = ui->action_Draw->isChecked();
 }
 

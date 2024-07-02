@@ -10,6 +10,8 @@
 #include <QJsonObject>
 #include <QMainWindow>
 #include <QSharedPointer>
+#include <QPainterPath>
+#include <QGraphicsPathItem>
 
 #include <QDebug>
 
@@ -141,6 +143,10 @@ private:
     int mSelrectEdge = 0;
     QPointF mSelStart;
 
+    bool mIsDrawing = false;
+    QPainterPath mDrawPath;
+    QGraphicsPathItem* mScenePath = nullptr;
+
     void viewPage(DocumentPtr doc, int pageIndex);
     void scaleScene();
 
@@ -199,6 +205,8 @@ private slots:
     void on_toolButton_doc_up_clicked();
 
     void on_toolButton_doc_view_clicked();
+
+    void on_action_Draw_triggered();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

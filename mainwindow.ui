@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>757</width>
+    <width>792</width>
     <height>650</height>
    </rect>
   </property>
@@ -280,6 +280,7 @@
    <addaction name="action_Order_Documents"/>
    <addaction name="separator"/>
    <addaction name="action_Crop"/>
+   <addaction name="action_Draw"/>
    <addaction name="separator"/>
    <addaction name="action_Fullscreen"/>
    <addaction name="separator"/>
@@ -400,6 +401,14 @@
    </property>
    <property name="text">
     <string>Order Documents</string>
+   </property>
+  </action>
+  <action name="action_Draw">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Draw</string>
    </property>
   </action>
  </widget>
