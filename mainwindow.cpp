@@ -103,6 +103,7 @@ bool MainWindow::saveSession()
         QString filepath = QFileDialog::getSaveFileName(this, "Save Session",
                                                 QString(), mSessionFileFilter);
         if (!filepath.isEmpty()) {
+            if (!filepath.endsWith(mSessionExt)) { filepath.append(mSessionExt); }
             saved = writeSession(filepath);
             if (saved) {
                 setSessionFilepath(filepath);

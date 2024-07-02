@@ -149,6 +149,7 @@ private:
     QJsonObject rectToJson(QRectF rect);
     QRectF jsonToRect(QJsonObject obj);
 
+    const QString mSessionExt = ".sheets";
     const QString mSessionFileFilter = "Sheet Sessions (*.sheets)";
 
     void clearSession();
