@@ -69,8 +69,17 @@ void MainWindow::openSession(QString filepath)
         QJsonArray jpages = jdoc.value("pages").toArray();
         foreach (QJsonValue jvpage, jpages) {
             QJsonObject jpage = jvpage.toObject();
+
             PageScenePtr page(new PageScene());
             page->setSelRect(jsonToRect(jpage.value("rect").toObject()));
+            QJsonArray jcurves = jpage.value("drawCurves").toArray();
+            foreach (QJsonValue jvcurve, jcurves) {
+                QJsonObject jcurve = jvcurve.toObject();
+                DrawCurvePtr d(new DrawCurve());
+                d->fromJson(jcurve);
+                page->addDrawCurve(d);
+            }
+
             doc->pages.append(page);
             updateBreadcrumbs();
         }
@@ -319,13 +328,22 @@ bool MainWindow::writeSession(QString filepath)
         QJsonObject jdoc;
         jdoc.insert("name", doc->name);
         jdoc.insert("filepath", doc->filepath);
+
         QJsonArray jpages;
         foreach (PageScenePtr page, doc->pages) {
             QJsonObject jpage;
             jpage.insert("rect", rectToJson(page->getSelRect()));
+
+            QJsonArray jcurves;
+            foreach (DrawCurvePtr c, page->drawCurves()) {
+                jcurves.append(c->toJson());
+            }
+            jpage.insert("drawCurves", jcurves);
+
             jpages.append(jpage);
         }
         jdoc.insert("pages", jpages);
+
         jdocs.append(jdoc);
     }
 
@@ -489,6 +507,7 @@ void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 
         if (mDrawMode == DrawMode::Pen) {
             page->addDrawCurve(mDrawCurve);
+            setSessionModified(true);
         }
 
     }
@@ -537,10 +556,13 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
 
         mDrawCurve->addPoint(pos);
 
-        if (mDrawMode == DrawMode::Erase) {
+        if (mDrawMode == DrawMode::Pen) {
+            setSessionModified(true);
+        } else if (mDrawMode == DrawMode::Erase) {
             foreach (DrawCurvePtr c, page->drawCurves()) {
                 if (mDrawCurve->intersects(c.data())) {
                     page->removeDrawCurve(c);
+                    setSessionModified(true);
                 }
             }
         }

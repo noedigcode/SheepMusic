@@ -1,9 +1,11 @@
 #ifndef DRAWCURVE_H
 #define DRAWCURVE_H
 
+#include <QGraphicsPathItem>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QPainterPath>
 #include <QPen>
-#include <QGraphicsPathItem>
 
 class DrawCurve
 {
@@ -17,6 +19,9 @@ public:
     bool intersects(DrawCurve* otherCurve);
     bool linesIntersect(const QLineF& line1, const QLineF& line2);
     QList<QLineF> lines() const;
+
+    QJsonObject toJson();
+    void fromJson(QJsonObject obj);
 
 private:
     QList<QLineF> mLines;

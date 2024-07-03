@@ -64,3 +64,30 @@ QList<QLineF> DrawCurve::lines() const
 {
     return mLines;
 }
+
+QJsonObject DrawCurve::toJson()
+{
+    QJsonObject obj;
+
+    QJsonArray points;
+    for (int i = 0; i < mPainterPath.elementCount(); i++) {
+        QPainterPath::Element e = mPainterPath.elementAt(i);
+        QJsonObject point;
+        point.insert("x", e.x);
+        point.insert("y", e.y);
+        points.append(point);
+    }
+    obj.insert("points", points);
+
+    return obj;
+}
+
+void DrawCurve::fromJson(QJsonObject obj)
+{
+    QJsonArray points = obj.value("points").toArray();
+    foreach (QJsonValue v, points) {
+        QJsonObject point = v.toObject();
+        this->addPoint(QPointF(point.value("x").toDouble(),
+                               point.value("y").toDouble()));
+    }
+}
