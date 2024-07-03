@@ -1,17 +1,19 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "drawcurve.h"
+#include "pagescene.h"
 #include "settings.h"
 #include "version.h"
 
+#include <QGraphicsPathItem>
 #include <QGraphicsScene>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMainWindow>
-#include <QSharedPointer>
 #include <QPainterPath>
-#include <QGraphicsPathItem>
+#include <QSharedPointer>
 
 #include <QDebug>
 
@@ -48,24 +50,6 @@ private:
 
     // -------------------------------------------------------------------------
 
-    class PageScene : public QGraphicsScene
-    {
-    public:
-        PageScene();
-
-        QGraphicsPixmapItem* mPixmap = nullptr;
-        void setImage(QImage image);
-
-        void setSelRect(QRectF rect);
-        QRectF getSelRect();
-        void showSelRect(bool show);
-
-    private:
-        QGraphicsRectItem* mSelrect = nullptr;
-        void initSelRect();
-    };
-    typedef QSharedPointer<PageScene> PageScenePtr;
-
     struct Document
     {
         QString name;
@@ -81,54 +65,14 @@ private:
     {
     public:
         Documents(MainWindow* mw) : mw(mw) {}
-        void append(DocumentPtr doc)
-        {
-            documents.append(doc);
-            mw->updateDocOrderList_appended(doc);
-            mw->updateBreadcrumbs();
-        }
-        QList<DocumentPtr> all()
-        {
-            return documents;
-        }
-        DocumentPtr value(int index)
-        {
-            return documents.value(index);
-        }
-        void clear()
-        {
-            documents.clear();
-            mw->updateDocOrderList_cleared();
-            mw->updateBreadcrumbs();
-        }
-        int count()
-        {
-            return documents.count();
-        }
-        int indexOf(DocumentPtr doc)
-        {
-            return documents.indexOf(doc);
-        }
-        void remove(DocumentPtr doc)
-        {
-            int index = documents.indexOf(doc);
-            if (index >= 0) {
-                documents.removeAt(index);
-                mw->updateDocOrderList_removed(index);
-                mw->updateBreadcrumbs();
-            }
-        }
-        void move(int from, int to)
-        {
-            if ((from < 0) || (from >= documents.count())) { return; }
-            // Wrap around to
-            if (to < 0) { to = documents.count() - 1; }
-            if (to >= documents.count()) { to = 0; }
-
-            documents.move(from, to);
-            mw->updateDocOrderList_moved(from, to);
-            mw->updateBreadcrumbs();
-        }
+        void append(DocumentPtr doc);
+        QList<DocumentPtr> all();
+        DocumentPtr value(int index);
+        void clear();
+        int count();
+        int indexOf(DocumentPtr doc);
+        void remove(DocumentPtr doc);
+        void move(int from, int to);
     private:
         MainWindow* mw;
         QList<DocumentPtr> documents;
@@ -139,13 +83,16 @@ private:
 
     void setupGraphicsView();
     bool mIsCropping = false;
+    void enableCropping(bool enable);
     bool mGraphicsViewLeftMouseDown = false;
     int mSelrectEdge = 0;
     QPointF mSelStart;
 
     bool mIsDrawing = false;
-    QPainterPath mDrawPath;
-    QGraphicsPathItem* mScenePath = nullptr;
+    DrawCurvePtr mDrawCurve;
+    enum class DrawMode { Pen, Erase} mDrawMode;
+    void setDrawPen();
+    void setDrawErase();
 
     void viewPage(DocumentPtr doc, int pageIndex);
     void scaleScene();
@@ -199,14 +146,14 @@ private slots:
     void on_action_New_Session_triggered();
     void on_action_Order_Documents_triggered();
     void on_stackedWidget_currentChanged(int arg1);
-
-    void on_toolButton_doc_down_clicked();
-
-    void on_toolButton_doc_up_clicked();
-
-    void on_toolButton_doc_view_clicked();
-
     void on_action_Draw_triggered();
+    void on_action_Exit_Draw_Mode_triggered();
+    void on_action_Pen_triggered();
+    void on_action_Erase_triggered();
+    void on_action_View_Document_triggered();
+    void on_action_Exit_Order_Mode_triggered();
+    void on_action_Move_Doc_Up_triggered();
+    void on_action_Move_Doc_Down_triggered();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

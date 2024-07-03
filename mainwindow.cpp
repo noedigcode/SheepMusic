@@ -14,6 +14,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->toolBar_order->hide();
+    ui->toolBar_draw->hide();
+
     setFullscreen(settings.fullscreen.value().toBool());
 
     updateWindowTitle();
@@ -156,11 +159,15 @@ void MainWindow::updateWindowTitle()
 void MainWindow::showMainPagesView()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_main);
+    ui->toolBar_main->show();
+    ui->toolBar_order->hide();
 }
 
 void MainWindow::showDocOrderView()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_orderDocs);
+    ui->toolBar_main->hide();
+    ui->toolBar_order->show();
 }
 
 void MainWindow::print(QString msg)
@@ -184,6 +191,34 @@ void MainWindow::setupGraphicsView()
             this, &MainWindow::onGraphicsViewLeftMouseDragEnd);
     connect(ui->graphicsView, &GraphicsView::resized,
             this, &MainWindow::onGraphicsViewResized);
+}
+
+void MainWindow::enableCropping(bool enable)
+{
+    mIsCropping = enable;
+    ui->action_Crop->setChecked(enable);
+
+    if (!currentDoc) { return; }
+    PageScenePtr page = currentDoc->pages.value(currentPage);
+    if (!page) { return; }
+
+    scaleScene();
+}
+
+void MainWindow::setDrawPen()
+{
+    mDrawMode = DrawMode::Pen;
+
+    ui->action_Pen->setChecked(true);
+    ui->action_Erase->setChecked(false);
+}
+
+void MainWindow::setDrawErase()
+{
+    mDrawMode = DrawMode::Erase;
+
+    ui->action_Pen->setChecked(false);
+    ui->action_Erase->setChecked(true);
 }
 
 void MainWindow::viewPage(DocumentPtr doc, int pageIndex)
@@ -449,14 +484,12 @@ void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 
     } else if (mIsDrawing) {
 
-        mDrawPath = QPainterPath(pos);
-        mScenePath = new QGraphicsPathItem();
-        QPen pen;
-        pen.setCosmetic(true);
-        pen.setColor(Qt::red);
-        pen.setWidth(2);
-        mScenePath->setPen(pen);
-        page->addItem(mScenePath);
+        mDrawCurve.reset(new DrawCurve());
+        mDrawCurve->addPoint(pos);
+
+        if (mDrawMode == DrawMode::Pen) {
+            page->addDrawCurve(mDrawCurve);
+        }
 
     }
 }
@@ -502,8 +535,15 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
 
     } else if (mIsDrawing) {
 
-        mDrawPath.lineTo(pos);
-        mScenePath->setPath(mDrawPath);
+        mDrawCurve->addPoint(pos);
+
+        if (mDrawMode == DrawMode::Erase) {
+            foreach (DrawCurvePtr c, page->drawCurves()) {
+                if (mDrawCurve->intersects(c.data())) {
+                    page->removeDrawCurve(c);
+                }
+            }
+        }
 
     }
 }
@@ -525,56 +565,6 @@ void MainWindow::on_action_Debug_Console_triggered()
     } else {
         ui->stackedWidget->setCurrentWidget(ui->page_main);
     }
-}
-
-MainWindow::PageScene::PageScene()
-{
-    setBackgroundBrush(QBrush(Qt::white));
-}
-
-void MainWindow::PageScene::setImage(QImage image)
-{
-    mPixmap = this->addPixmap(QPixmap::fromImage(image));
-}
-
-void MainWindow::PageScene::setSelRect(QRectF rect)
-{
-    if (!mSelrect) { initSelRect(); }
-    mSelrect->setRect(rect);
-}
-
-QRectF MainWindow::PageScene::getSelRect()
-{
-    if (!mSelrect) { initSelRect(); }
-    return mSelrect->rect();
-}
-
-void MainWindow::PageScene::showSelRect(bool show)
-{
-    if (show) {
-        if (!mSelrect) { initSelRect(); }
-        mSelrect->show();
-    } else {
-        if (mSelrect) { mSelrect->hide(); }
-    }
-}
-
-void MainWindow::PageScene::initSelRect()
-{
-    QRectF rect;
-    if (mPixmap) {
-        rect = mPixmap->boundingRect();
-    }
-    mSelrect = new QGraphicsRectItem(rect);
-    mSelrect->setPen(QPen(Qt::blue, 2)); // Set blue border
-    QColor fillColor("#676cf5");
-    fillColor.setAlphaF(0.5);
-    mSelrect->setBrush(fillColor); // Set semi-transparent blue fill
-
-    // Add the item to the scene
-    this->addItem(mSelrect);
-    mSelrect->setZValue(1);
-    mSelrect->hide();
 }
 
 void MainWindow::on_action_Next_Page_triggered()
@@ -609,13 +599,7 @@ void MainWindow::on_action_Previous_Page_triggered()
 
 void MainWindow::on_action_Crop_triggered()
 {
-    mIsCropping = ui->action_Crop->isChecked();
-
-    if (!currentDoc) { return; }
-    PageScenePtr page = currentDoc->pages.value(currentPage);
-    if (!page) { return; }
-
-    scaleScene();
+    enableCropping(ui->action_Crop->isChecked());
 }
 
 void MainWindow::on_action_Add_Document_triggered()
@@ -708,11 +692,7 @@ void MainWindow::on_action_New_Session_triggered()
 
 void MainWindow::on_action_Order_Documents_triggered()
 {
-    if (ui->action_Order_Documents->isChecked()) {
-        showDocOrderView();
-    } else {
-        showMainPagesView();
-    }
+    showDocOrderView();
 }
 
 void MainWindow::on_stackedWidget_currentChanged(int /*arg1*/)
@@ -729,25 +709,109 @@ void MainWindow::on_stackedWidget_currentChanged(int /*arg1*/)
     ui->action_Remove_Document->setEnabled(enable);
 }
 
-void MainWindow::on_toolButton_doc_down_clicked()
+void MainWindow::on_action_Draw_triggered()
 {
-    QListWidgetItem* item = ui->listWidget_docs->currentItem();
+    if (mIsCropping) {
+        enableCropping(false);
+    }
 
-    int from = ui->listWidget_docs->currentRow();
-    if (from < 0) { return; }
-    int to = from + 1;
+    mIsDrawing = true;
+    ui->toolBar_draw->show();
+    ui->toolBar_main->hide();
+    setDrawPen();
+}
+
+void MainWindow::on_action_Exit_Draw_Mode_triggered()
+{
+    mIsDrawing = false;
+    ui->toolBar_draw->hide();
+    ui->toolBar_main->show();
+}
+
+void MainWindow::on_action_Pen_triggered()
+{
+    setDrawPen();
+}
+
+void MainWindow::on_action_Erase_triggered()
+{
+    setDrawErase();
+}
+
+void MainWindow::Documents::append(DocumentPtr doc)
+{
+    documents.append(doc);
+    mw->updateDocOrderList_appended(doc);
+    mw->updateBreadcrumbs();
+}
+
+QList<MainWindow::DocumentPtr> MainWindow::Documents::all()
+{
+    return documents;
+}
+
+MainWindow::DocumentPtr MainWindow::Documents::value(int index)
+{
+    return documents.value(index);
+}
+
+void MainWindow::Documents::clear()
+{
+    documents.clear();
+    mw->updateDocOrderList_cleared();
+    mw->updateBreadcrumbs();
+}
+
+int MainWindow::Documents::count()
+{
+    return documents.count();
+}
+
+int MainWindow::Documents::indexOf(DocumentPtr doc)
+{
+    return documents.indexOf(doc);
+}
+
+void MainWindow::Documents::remove(DocumentPtr doc)
+{
+    int index = documents.indexOf(doc);
+    if (index >= 0) {
+        documents.removeAt(index);
+        mw->updateDocOrderList_removed(index);
+        mw->updateBreadcrumbs();
+    }
+}
+
+void MainWindow::Documents::move(int from, int to)
+{
+    if ((from < 0) || (from >= documents.count())) { return; }
     // Wrap around to
     if (to < 0) { to = documents.count() - 1; }
     if (to >= documents.count()) { to = 0; }
 
     documents.move(from, to);
-    setSessionModified(true);
-
-    // Keep moved item selected
-    ui->listWidget_docs->setCurrentItem(item);
+    mw->updateDocOrderList_moved(from, to);
+    mw->updateBreadcrumbs();
 }
 
-void MainWindow::on_toolButton_doc_up_clicked()
+void MainWindow::on_action_View_Document_triggered()
+{
+    int index = ui->listWidget_docs->currentRow();
+    if (index < 0) { return; }
+
+    DocumentPtr doc = documents.value(index);
+    if (!doc) { return; }
+
+    viewPage(doc, 0);
+    showMainPagesView();
+}
+
+void MainWindow::on_action_Exit_Order_Mode_triggered()
+{
+    showMainPagesView();
+}
+
+void MainWindow::on_action_Move_Doc_Up_triggered()
 {
     QListWidgetItem* item = ui->listWidget_docs->currentItem();
 
@@ -765,21 +829,20 @@ void MainWindow::on_toolButton_doc_up_clicked()
     ui->listWidget_docs->setCurrentItem(item);
 }
 
-void MainWindow::on_toolButton_doc_view_clicked()
+void MainWindow::on_action_Move_Doc_Down_triggered()
 {
-    int index = ui->listWidget_docs->currentRow();
-    if (index < 0) { return; }
+    QListWidgetItem* item = ui->listWidget_docs->currentItem();
 
-    DocumentPtr doc = documents.value(index);
-    if (!doc) { return; }
+    int from = ui->listWidget_docs->currentRow();
+    if (from < 0) { return; }
+    int to = from + 1;
+    // Wrap around to
+    if (to < 0) { to = documents.count() - 1; }
+    if (to >= documents.count()) { to = 0; }
 
-    viewPage(doc, 0);
-    showMainPagesView();
+    documents.move(from, to);
+    setSessionModified(true);
+
+    // Keep moved item selected
+    ui->listWidget_docs->setCurrentItem(item);
 }
-
-
-void MainWindow::on_action_Draw_triggered()
-{
-    mIsDrawing = ui->action_Draw->isChecked();
-}
-

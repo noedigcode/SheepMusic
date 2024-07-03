@@ -10,14 +10,18 @@ CONFIG += c++11
 
 SOURCES += \
     breadcrumbswidget.cpp \
+    drawcurve.cpp \
     graphicsview.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    pagescene.cpp
 
 HEADERS += \
     breadcrumbswidget.h \
+    drawcurve.h \
     graphicsview.h \
     mainwindow.h \
+    pagescene.h \
     settings.h \
     version.h
 
