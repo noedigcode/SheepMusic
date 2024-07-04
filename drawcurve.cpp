@@ -3,17 +3,12 @@
 
 DrawCurve::DrawCurve()
 {
-    mScenePath = new QGraphicsPathItem();
-    QPen pen;
-    pen.setCosmetic(true);
-    pen.setColor(Qt::red);
-    pen.setWidth(2);
-    mScenePath->setPen(pen);
+
 }
 
 DrawCurve::~DrawCurve()
 {
-    delete mScenePath;
+
 }
 
 QPainterPath DrawCurve::painterPath()
@@ -23,6 +18,18 @@ QPainterPath DrawCurve::painterPath()
 
 QGraphicsPathItem* DrawCurve::scenePathItem()
 {
+    // Create a scene path item upon request
+    if (!mScenePath) {
+        mScenePath = new QGraphicsPathItem();
+        mScenePath->setZValue(10);
+        QPen pen;
+        pen.setCosmetic(true);
+        pen.setColor(Qt::red);
+        pen.setWidth(2);
+        mScenePath->setPen(pen);
+    }
+    mScenePath->setPath(mPainterPath);
+
     return mScenePath;
 }
 
@@ -39,7 +46,9 @@ void DrawCurve::addPoint(QPointF point)
         QPainterPath::Element elem2 = mPainterPath.elementAt(n - 1);
         mLines.append(QLineF(elem1.x, elem1.y, elem2.x, elem2.y));
 
-        mScenePath->setPath(mPainterPath);
+        if (mScenePath) {
+            mScenePath->setPath(mPainterPath);
+        }
     }
 }
 

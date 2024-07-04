@@ -27,7 +27,7 @@ private:
     QList<QLineF> mLines;
     bool initialised = false;
     QPainterPath mPainterPath;
-    QGraphicsPathItem* mScenePath;
+    QGraphicsPathItem* mScenePath = nullptr;
 };
 
 typedef QSharedPointer<DrawCurve> DrawCurvePtr;
