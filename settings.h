@@ -39,6 +39,11 @@ public:
             QSettings().setValue(mKey, value);
         }
 
+        void setDefaultValue(QVariant value)
+        {
+            mDefaultValue = value;
+        }
+
     private:
         QString mKey;
         QVariant mDefaultValue;
@@ -49,6 +54,8 @@ public:
 
     Setting lastSession {"lastSession", ""};
     Setting fullscreen {"fullscreen", false};
+    Setting iconsHorizontalSize {"iconsHorizontalSize", 54};
+    Setting iconsVerticalSize {"iconsVerticalSize", 32};
 };
 
 #endif // SETTINGS_H

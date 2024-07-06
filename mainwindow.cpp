@@ -14,8 +14,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->toolBar_order->hide();
-    ui->toolBar_draw->hide();
+    // Set the icon size settings defaults to those specified in the GUI
+    settings.iconsHorizontalSize.setDefaultValue(ui->toolBar_main->iconSize().width());
+    settings.iconsVerticalSize.setDefaultValue(ui->toolBar_main->iconSize().height());
+    updateToolbarIconSizeFromSettings();
+
+    makeAllToolbarsCentered();
 
     setFullscreen(settings.fullscreen.value().toBool());
 
@@ -35,6 +39,50 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::makeAllToolbarsCentered()
+{
+    foreach (QToolBar* toolbar, allToolbars()) {
+        // Insert expanding widgets at beginning and end
+        QWidget* w1 = new QWidget(this);
+        w1->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        toolbar->insertWidget(toolbar->actions().value(0), w1);
+
+        QWidget* w2 = new QWidget(this);
+        w2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        toolbar->addWidget(w2);
+    }
+}
+
+void MainWindow::showOnlyToolbar(QToolBar* toolbar)
+{
+    foreach (QToolBar* tb, allToolbars()) {
+        tb->setVisible(tb == toolbar);
+    }
+}
+
+QList<QToolBar*> MainWindow::allToolbars()
+{
+    return this->findChildren<QToolBar*>();
+}
+
+void MainWindow::updateToolbarIconSizeFromSettings()
+{
+    QSize size;
+    size.setWidth(settings.iconsHorizontalSize.value().toInt());
+    size.setHeight(settings.iconsVerticalSize.value().toInt());
+
+    if (size.width() < minIconSize) {
+        size.setWidth(minIconSize);
+    }
+    if (size.height() < minIconSize) {
+        size.setHeight(minIconSize);
+    }
+
+    foreach (QToolBar* tb, allToolbars()) {
+        tb->setIconSize(size);
+    }
 }
 
 void MainWindow::openSession(QString filepath)
@@ -168,15 +216,19 @@ void MainWindow::updateWindowTitle()
 void MainWindow::showMainPagesView()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_main);
-    ui->toolBar_main->show();
-    ui->toolBar_order->hide();
+    showOnlyToolbar(ui->toolBar_main);
 }
 
 void MainWindow::showDocOrderView()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_orderDocs);
-    ui->toolBar_main->hide();
-    ui->toolBar_order->show();
+    showOnlyToolbar(ui->toolBar_order);
+
+    // Select current document
+    if (currentDoc) {
+        int index = documents.indexOf(currentDoc);
+        ui->listWidget_docs->setCurrentRow(index);
+    }
 }
 
 void MainWindow::print(QString msg)
@@ -205,7 +257,6 @@ void MainWindow::setupGraphicsView()
 void MainWindow::enableCropping(bool enable)
 {
     mIsCropping = enable;
-    ui->action_Crop->setChecked(enable);
 
     if (!currentDoc) { return; }
     PageScenePtr page = currentDoc->pages.value(currentPage);
@@ -261,6 +312,26 @@ void MainWindow::scaleScene()
     page->showSelRect(mIsCropping);
     ui->graphicsView->fitInView(rect, Qt::KeepAspectRatio);
     ui->graphicsView->centerOn(rect.center());
+}
+
+void MainWindow::removeDocAndShowOther(DocumentPtr doc)
+{
+    if (!doc) { return; }
+
+    int docIndex = documents.indexOf(doc);
+    documents.remove(doc);
+
+    if (documents.count()) {
+        // Show previous doc
+        if (docIndex > 0) { docIndex -= 1; }
+        viewPage(documents.value(docIndex), 0);
+    } else {
+        currentDoc.reset();
+        ui->graphicsView->setScene(nullptr);
+        updateBreadcrumbs();
+    }
+
+    setSessionModified(true);
 }
 
 QJsonObject MainWindow::rectToJson(QRectF rect)
@@ -621,7 +692,9 @@ void MainWindow::on_action_Previous_Page_triggered()
 
 void MainWindow::on_action_Crop_triggered()
 {
-    enableCropping(ui->action_Crop->isChecked());
+    enableCropping(true);
+    showOnlyToolbar(ui->toolBar_crop);
+    ui->stackedWidget->setCurrentWidget(ui->page_main);
 }
 
 void MainWindow::on_action_Add_Document_triggered()
@@ -689,20 +762,7 @@ void MainWindow::on_action_Remove_Document_triggered()
         return;
     }
 
-    int docIndex = documents.indexOf(currentDoc);
-    documents.remove(currentDoc);
-
-    if (documents.count()) {
-        // Show previous doc
-        if (docIndex > 0) { docIndex -= 1; }
-        viewPage(documents.value(docIndex), 0);
-    } else {
-        currentDoc.reset();
-        ui->graphicsView->setScene(nullptr);
-        updateBreadcrumbs();
-    }
-
-    setSessionModified(true);
+    removeDocAndShowOther(currentDoc);
 }
 
 void MainWindow::on_action_New_Session_triggered()
@@ -719,16 +779,8 @@ void MainWindow::on_action_Order_Documents_triggered()
 
 void MainWindow::on_stackedWidget_currentChanged(int /*arg1*/)
 {
-    QWidget* screen = ui->stackedWidget->currentWidget();
-
-    ui->action_Debug_Console->setChecked(screen == ui->page_console);
-    ui->action_Order_Documents->setChecked(screen == ui->page_orderDocs);
-
-    bool enable = (screen == ui->page_main);
-    ui->action_Crop->setEnabled(enable);
-    ui->action_Next_Page->setEnabled(enable);
-    ui->action_Previous_Page->setEnabled(enable);
-    ui->action_Remove_Document->setEnabled(enable);
+    ui->action_Settings->setChecked(
+                ui->stackedWidget->currentWidget() == ui->page_settings);
 }
 
 void MainWindow::on_action_Draw_triggered()
@@ -738,16 +790,15 @@ void MainWindow::on_action_Draw_triggered()
     }
 
     mIsDrawing = true;
-    ui->toolBar_draw->show();
-    ui->toolBar_main->hide();
+    showOnlyToolbar(ui->toolBar_draw);
+    ui->stackedWidget->setCurrentWidget(ui->page_main);
     setDrawPen();
 }
 
 void MainWindow::on_action_Exit_Draw_Mode_triggered()
 {
     mIsDrawing = false;
-    ui->toolBar_draw->hide();
-    ui->toolBar_main->show();
+    showOnlyToolbar(ui->toolBar_main);
 }
 
 void MainWindow::on_action_Pen_triggered()
@@ -868,3 +919,62 @@ void MainWindow::on_action_Move_Doc_Down_triggered()
     // Keep moved item selected
     ui->listWidget_docs->setCurrentItem(item);
 }
+
+void MainWindow::on_action_Order_Remove_Document_triggered()
+{
+    int index = ui->listWidget_docs->currentRow();
+    if (index < 0) { return; }
+
+    DocumentPtr doc = documents.value(index);
+    if (!doc) { return; }
+
+    if (!msgBoxYesNo("Remove file", "Are you sure you want to remove the selected file?")) {
+        return;
+    }
+
+    removeDocAndShowOther(doc);
+}
+
+void MainWindow::on_action_Exit_Crop_Mode_triggered()
+{
+    enableCropping(false);
+    showOnlyToolbar(ui->toolBar_main);
+}
+
+void MainWindow::on_action_Settings_triggered()
+{
+    if (ui->action_Settings->isChecked()) {
+        ui->stackedWidget->setCurrentWidget(ui->page_settings);
+    } else {
+        showMainPagesView();
+    }
+}
+
+void MainWindow::on_toolButton_iconhsize_up_clicked()
+{
+    int s = qMax(settings.iconsHorizontalSize.value().toInt() + 2, minIconSize);
+    settings.iconsHorizontalSize.set(s);
+    updateToolbarIconSizeFromSettings();
+}
+
+void MainWindow::on_toolButton_ioconhsize_down_clicked()
+{
+    int s = qMax(settings.iconsHorizontalSize.value().toInt() - 2, minIconSize);
+    settings.iconsHorizontalSize.set(s);
+    updateToolbarIconSizeFromSettings();
+}
+
+void MainWindow::on_toolButton_iconvsize_up_clicked()
+{
+    int s = qMax(settings.iconsVerticalSize.value().toInt() + 2, minIconSize);
+    settings.iconsVerticalSize.set(s);
+    updateToolbarIconSizeFromSettings();
+}
+
+void MainWindow::on_toolButton_iconvsize_down_clicked()
+{
+    int s = qMax(settings.iconsVerticalSize.value().toInt() - 2, minIconSize);
+    settings.iconsVerticalSize.set(s);
+    updateToolbarIconSizeFromSettings();
+}
+

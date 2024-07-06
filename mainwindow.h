@@ -29,6 +29,13 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void makeAllToolbarsCentered();
+    void showOnlyToolbar(QToolBar* toolbar);
+    QList<QToolBar*> allToolbars();
+
+    const int minIconSize = 24;
+    void updateToolbarIconSizeFromSettings();
+
     void openSession(QString filepath);
     bool saveSession();
     void setFullscreen(bool fullscreen);
@@ -97,6 +104,8 @@ private:
     void viewPage(DocumentPtr doc, int pageIndex);
     void scaleScene();
 
+    void removeDocAndShowOther(DocumentPtr doc);
+
     // -------------------------------------------------------------------------
 
     QJsonObject rectToJson(QRectF rect);
@@ -154,6 +163,13 @@ private slots:
     void on_action_Exit_Order_Mode_triggered();
     void on_action_Move_Doc_Up_triggered();
     void on_action_Move_Doc_Down_triggered();
+    void on_action_Order_Remove_Document_triggered();
+    void on_action_Exit_Crop_Mode_triggered();
+    void on_action_Settings_triggered();
+    void on_toolButton_iconhsize_up_clicked();
+    void on_toolButton_ioconhsize_down_clicked();
+    void on_toolButton_iconvsize_up_clicked();
+    void on_toolButton_iconvsize_down_clicked();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

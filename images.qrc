@@ -18,5 +18,6 @@
         <file>images/icons8-erase-96.png</file>
         <file>images/icons8-pencil-drawing-96.png</file>
         <file>images/icons8-done-96.png</file>
+        <file>images/icons8-settings-96.png</file>
     </qresource>
 </RCC>
