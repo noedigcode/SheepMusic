@@ -699,19 +699,23 @@ void MainWindow::on_action_Crop_triggered()
 
 void MainWindow::on_action_Add_Document_triggered()
 {
-    QString filepath = QFileDialog::getOpenFileName(this, "Add Document",
-                                                    QString(), "PDF (*.pdf)");
-    if (filepath.isEmpty()) { return; }
+    QStringList filepaths = QFileDialog::getOpenFileNames(this, "Add Document",
+                                                     QString(), "PDF (*.pdf)");
+    if (filepaths.isEmpty()) { return; }
 
-    DocumentPtr doc(new Document());
-    doc->name = QFileInfo(filepath).baseName();
-    doc->filepath = filepath;
-    documents.append(doc);
-    updateBreadcrumbs();
+    DocumentPtr docToView;
 
-    loadPdf(doc);
+    foreach (QString filepath, filepaths) {
+        DocumentPtr doc(new Document());
+        doc->name = QFileInfo(filepath).baseName();
+        doc->filepath = filepath;
+        documents.append(doc);
+        updateBreadcrumbs();
+        loadPdf(doc);
+        if (!docToView) { docToView = doc; }
+    }
 
-    viewPage(doc, 0);
+    viewPage(docToView, 0);
     setSessionModified(true);
 }
 
@@ -867,20 +871,17 @@ void MainWindow::Documents::move(int from, int to)
     mw->updateBreadcrumbs();
 }
 
-void MainWindow::on_action_View_Document_triggered()
-{
-    int index = ui->listWidget_docs->currentRow();
-    if (index < 0) { return; }
-
-    DocumentPtr doc = documents.value(index);
-    if (!doc) { return; }
-
-    viewPage(doc, 0);
-    showMainPagesView();
-}
-
 void MainWindow::on_action_Exit_Order_Mode_triggered()
 {
+    // View the document currently selected in the order list
+    int index = ui->listWidget_docs->currentRow();
+    if (index >= 0) {
+        DocumentPtr doc = documents.value(index);
+        if (doc) {
+            viewPage(doc, 0);
+        }
+    }
+
     showMainPagesView();
 }
 

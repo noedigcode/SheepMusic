@@ -159,7 +159,6 @@ private slots:
     void on_action_Exit_Draw_Mode_triggered();
     void on_action_Pen_triggered();
     void on_action_Erase_triggered();
-    void on_action_View_Document_triggered();
     void on_action_Exit_Order_Mode_triggered();
     void on_action_Move_Doc_Up_triggered();
     void on_action_Move_Doc_Down_triggered();

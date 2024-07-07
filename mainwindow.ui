@@ -354,7 +354,6 @@ QPushButton {
    <addaction name="separator"/>
    <addaction name="action_Add_Document"/>
    <addaction name="action_Order_Remove_Document"/>
-   <addaction name="action_View_Document"/>
    <addaction name="action_Move_Doc_Up"/>
    <addaction name="action_Move_Doc_Down"/>
   </widget>
@@ -538,15 +537,6 @@ QPushButton {
    </property>
    <property name="text">
     <string>Erase</string>
-   </property>
-  </action>
-  <action name="action_View_Document">
-   <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-view-96.png</normaloff>:/images/icons8-view-96.png</iconset>
-   </property>
-   <property name="text">
-    <string>View Document</string>
    </property>
   </action>
   <action name="action_Exit_Order_Mode">
