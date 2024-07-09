@@ -14,6 +14,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->label_version->setText(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
+    ui->label_settingsLocation->setText(QSettings().fileName());
+
     // Set the icon size settings defaults to those specified in the GUI
     settings.iconsHorizontalSize.setDefaultValue(ui->toolBar_main->iconSize().width());
     settings.iconsVerticalSize.setDefaultValue(ui->toolBar_main->iconSize().height());
@@ -202,15 +205,23 @@ bool MainWindow::msgBoxYesNo(QString title, QString text)
 
 void MainWindow::updateWindowTitle()
 {
-    QString sessionText;
+    QString text;
+
     if (!mSessionFilepath.isEmpty()) {
-        sessionText = QFileInfo(mSessionFilepath).baseName();
-        if (mSessionModified) {
-            sessionText.append("*");
-        }
-        sessionText += " - ";
+        text = QFileInfo(mSessionFilepath).baseName();
     }
-    setWindowTitle(QString("%1%2 %3").arg(sessionText).arg(APP_NAME).arg(APP_VERSION));
+    if (currentDoc) {
+        text += " - " + currentDoc->name;
+    }
+    if (mSessionModified) {
+        text.append("*");
+    }
+
+    if (text.isEmpty()) {
+        text = QString("%1 %2").arg(APP_NAME).arg(APP_VERSION);
+    }
+
+    setWindowTitle(text);
 }
 
 void MainWindow::showMainPagesView()
@@ -294,6 +305,7 @@ void MainWindow::viewPage(DocumentPtr doc, int pageIndex)
     currentDoc = doc;
     currentPage = pageIndex;
     updateBreadcrumbs();
+    updateWindowTitle();
 }
 
 void MainWindow::scaleScene()
