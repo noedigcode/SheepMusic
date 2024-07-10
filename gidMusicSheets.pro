@@ -9,24 +9,24 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    breadcrumbswidget.cpp \
-    drawcurve.cpp \
-    graphicsview.cpp \
-    main.cpp \
-    mainwindow.cpp \
-    pagescene.cpp
+    src/breadcrumbswidget.cpp \
+    src/drawcurve.cpp \
+    src/graphicsview.cpp \
+    src/main.cpp \
+    src/mainwindow.cpp \
+    src/pagescene.cpp
 
 HEADERS += \
-    breadcrumbswidget.h \
-    drawcurve.h \
-    graphicsview.h \
-    mainwindow.h \
-    pagescene.h \
-    settings.h \
-    version.h
+    src/breadcrumbswidget.h \
+    src/drawcurve.h \
+    src/graphicsview.h \
+    src/mainwindow.h \
+    src/pagescene.h \
+    src/settings.h \
+    src/version.h
 
 FORMS += \
-    mainwindow.ui
+    src/mainwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -34,4 +34,4 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    images.qrc
+    images/images.qrc

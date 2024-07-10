@@ -452,7 +452,7 @@ bool MainWindow::canSessionBeClosed()
 {
     if (mSessionModified) {
         int button = QMessageBox::question(this, "Close Session",
-                    "This session has been modified. Do you want to save changes?",
+                    "This session has been modified. Do you want to save the changes?",
                     QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (button == QMessageBox::Yes) {
             return saveSession();
@@ -711,7 +711,7 @@ void MainWindow::on_action_Crop_triggered()
 
 void MainWindow::on_action_Add_Document_triggered()
 {
-    QStringList filepaths = QFileDialog::getOpenFileNames(this, "Add Document",
+    QStringList filepaths = QFileDialog::getOpenFileNames(this, "Add Documents",
                                                      QString(), "PDF (*.pdf)");
     if (filepaths.isEmpty()) { return; }
 
@@ -774,7 +774,7 @@ void MainWindow::on_action_Remove_Document_triggered()
 {
     if (!currentDoc) { return; }
 
-    if (!msgBoxYesNo("Remove file", "Are you sure you want to remove this file?")) {
+    if (!msgBoxYesNo("Remove Document", "Are you sure you want to remove this document?")) {
         return;
     }
 
@@ -941,7 +941,7 @@ void MainWindow::on_action_Order_Remove_Document_triggered()
     DocumentPtr doc = documents.value(index);
     if (!doc) { return; }
 
-    if (!msgBoxYesNo("Remove file", "Are you sure you want to remove the selected file?")) {
+    if (!msgBoxYesNo("Remove Document", "Are you sure you want to remove the selected document?")) {
         return;
     }
 

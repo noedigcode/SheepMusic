@@ -17,8 +17,8 @@
    <string>Gid Music Sheets</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="images.qrc">
-    <normaloff>:/images/icons8-music-book-96.png</normaloff>:/images/icons8-music-book-96.png</iconset>
+   <iconset resource="../images/images.qrc">
+    <normaloff>:/appicon</normaloff>:/appicon</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -411,8 +411,8 @@ QPushButton {
   </action>
   <action name="action_Add_Document">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-new-copy-96.png</normaloff>:/images/icons8-new-copy-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/adddoc</normaloff>:/adddoc</iconset>
    </property>
    <property name="text">
     <string>Add Document</string>
@@ -420,8 +420,8 @@ QPushButton {
   </action>
   <action name="action_Save_Session">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-save-96.png</normaloff>:/images/icons8-save-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/save</normaloff>:/save</iconset>
    </property>
    <property name="text">
     <string>Save Session</string>
@@ -429,8 +429,8 @@ QPushButton {
   </action>
   <action name="action_Open_Session">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-opened-folder-96.png</normaloff>:/images/icons8-opened-folder-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/open</normaloff>:/open</iconset>
    </property>
    <property name="text">
     <string>Open Session</string>
@@ -438,8 +438,8 @@ QPushButton {
   </action>
   <action name="action_Next_Page">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-next-96.png</normaloff>:/images/icons8-next-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/nextpage</normaloff>:/nextpage</iconset>
    </property>
    <property name="text">
     <string>Next Page</string>
@@ -450,8 +450,8 @@ QPushButton {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-previous-96.png</normaloff>:/images/icons8-previous-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/previouspage</normaloff>:/previouspage</iconset>
    </property>
    <property name="text">
     <string>Previous Page</string>
@@ -459,8 +459,8 @@ QPushButton {
   </action>
   <action name="action_Crop">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-crop-96.png</normaloff>:/images/icons8-crop-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/crop</normaloff>:/crop</iconset>
    </property>
    <property name="text">
     <string>Crop</string>
@@ -471,8 +471,8 @@ QPushButton {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-screen-96.png</normaloff>:/images/icons8-screen-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/fullscreen</normaloff>:/fullscreen</iconset>
    </property>
    <property name="text">
     <string>Fullscreen</string>
@@ -480,17 +480,20 @@ QPushButton {
   </action>
   <action name="action_Quit">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-exit-sign-96.png</normaloff>:/images/icons8-exit-sign-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/quit</normaloff>:/quit</iconset>
    </property>
    <property name="text">
     <string>Quit</string>
    </property>
+   <property name="toolTip">
+    <string>Quit Application</string>
+   </property>
   </action>
   <action name="action_Remove_Document">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-delete-file-96.png</normaloff>:/images/icons8-delete-file-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/removedoc</normaloff>:/removedoc</iconset>
    </property>
    <property name="text">
     <string>Remove Document</string>
@@ -498,8 +501,8 @@ QPushButton {
   </action>
   <action name="action_New_Session">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-new-file-96.png</normaloff>:/images/icons8-new-file-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/newsession</normaloff>:/newsession</iconset>
    </property>
    <property name="text">
     <string>New Session</string>
@@ -507,8 +510,8 @@ QPushButton {
   </action>
   <action name="action_Order_Documents">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-sorting-96.png</normaloff>:/images/icons8-sorting-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/list</normaloff>:/list</iconset>
    </property>
    <property name="text">
     <string>Order Documents</string>
@@ -516,8 +519,8 @@ QPushButton {
   </action>
   <action name="action_Draw">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-pencil-drawing-96.png</normaloff>:/images/icons8-pencil-drawing-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/draw</normaloff>:/draw</iconset>
    </property>
    <property name="text">
     <string>Draw</string>
@@ -528,8 +531,8 @@ QPushButton {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-pencil-drawing-96.png</normaloff>:/images/icons8-pencil-drawing-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/draw</normaloff>:/draw</iconset>
    </property>
    <property name="text">
     <string>Pen</string>
@@ -537,8 +540,8 @@ QPushButton {
   </action>
   <action name="action_Exit_Draw_Mode">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-done-96.png</normaloff>:/images/icons8-done-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/done</normaloff>:/done</iconset>
    </property>
    <property name="text">
     <string>Exit Draw Mode</string>
@@ -549,8 +552,8 @@ QPushButton {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-erase-96.png</normaloff>:/images/icons8-erase-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/erase</normaloff>:/erase</iconset>
    </property>
    <property name="text">
     <string>Erase</string>
@@ -558,8 +561,8 @@ QPushButton {
   </action>
   <action name="action_Exit_Order_Mode">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-done-96.png</normaloff>:/images/icons8-done-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/done</normaloff>:/done</iconset>
    </property>
    <property name="text">
     <string>Exit Order Mode</string>
@@ -567,8 +570,8 @@ QPushButton {
   </action>
   <action name="action_Move_Doc_Up">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-up-96.png</normaloff>:/images/icons8-up-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/up</normaloff>:/up</iconset>
    </property>
    <property name="text">
     <string>Move Doc Up</string>
@@ -576,8 +579,8 @@ QPushButton {
   </action>
   <action name="action_Move_Doc_Down">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-down-96.png</normaloff>:/images/icons8-down-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/down</normaloff>:/down</iconset>
    </property>
    <property name="text">
     <string>Move Doc Down</string>
@@ -585,8 +588,8 @@ QPushButton {
   </action>
   <action name="action_Order_Remove_Document">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-delete-file-96.png</normaloff>:/images/icons8-delete-file-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/removedoc</normaloff>:/removedoc</iconset>
    </property>
    <property name="text">
     <string>Remove Document</string>
@@ -594,8 +597,8 @@ QPushButton {
   </action>
   <action name="action_Exit_Crop_Mode">
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-done-96.png</normaloff>:/images/icons8-done-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/done</normaloff>:/done</iconset>
    </property>
    <property name="text">
     <string>Exit Crop Mode</string>
@@ -606,8 +609,8 @@ QPushButton {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="images.qrc">
-     <normaloff>:/images/icons8-settings-96.png</normaloff>:/images/icons8-settings-96.png</iconset>
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/settings</normaloff>:/settings</iconset>
    </property>
    <property name="text">
     <string>Settings</string>
@@ -618,17 +621,17 @@ QPushButton {
   <customwidget>
    <class>GraphicsView</class>
    <extends>QGraphicsView</extends>
-   <header>graphicsview.h</header>
+   <header>src/graphicsview.h</header>
   </customwidget>
   <customwidget>
    <class>BreadcrumbsWidget</class>
    <extends>QWidget</extends>
-   <header>breadcrumbswidget.h</header>
+   <header>src/breadcrumbswidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="images.qrc"/>
+  <include location="../images/images.qrc"/>
  </resources>
  <connections/>
 </ui>
