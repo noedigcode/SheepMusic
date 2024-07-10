@@ -101,6 +101,12 @@ private:
     void setDrawPen();
     void setDrawErase();
 
+    bool mIsZooming = false;
+    bool mIsZoomed = false;
+    QPointF mZoomStart;
+    void unZoom();
+    void cancelZooming();
+
     void viewPage(DocumentPtr doc, int pageIndex);
     void scaleScene();
 
@@ -169,6 +175,7 @@ private slots:
     void on_toolButton_ioconhsize_down_clicked();
     void on_toolButton_iconvsize_up_clicked();
     void on_toolButton_iconvsize_down_clicked();
+    void on_action_Zoom_triggered();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

@@ -292,12 +292,30 @@ void MainWindow::setDrawErase()
     ui->action_Erase->setChecked(true);
 }
 
+void MainWindow::unZoom()
+{
+    if (mIsZoomed) {
+        mIsZoomed = false;
+        scaleScene();
+    }
+}
+
+void MainWindow::cancelZooming()
+{
+    if (mIsZooming) {
+        mIsZooming = false;
+        ui->action_Zoom->setChecked(false);
+    }
+}
+
 void MainWindow::viewPage(DocumentPtr doc, int pageIndex)
 {
     if (!doc) { return; }
 
     PageScenePtr page = doc->pages.value(pageIndex);
     if (!page) { return; }
+
+    unZoom();
 
     ui->graphicsView->setScene(page.data());
     QMetaObject::invokeMethod(this, &MainWindow::scaleScene, Qt::QueuedConnection);
@@ -317,6 +335,8 @@ void MainWindow::scaleScene()
     QRectF rect;
     if (mIsCropping) {
         rect = page->mPixmap->boundingRect();
+    } else if (mIsZoomed) {
+        rect = page->getZoomRect();
     } else {
         rect = page->getSelRect();
     }
@@ -544,7 +564,6 @@ void MainWindow::onGraphicsViewLeftClick(QPointF pos)
     } else if (pos.x() > rect.x() + rect.width()*0.5) {
         on_action_Next_Page_triggered();
     }
-    return;
 }
 
 void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
@@ -582,6 +601,10 @@ void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 
         mSelrectEdge = edge;
         mSelStart = pos;
+
+    } else if (mIsZooming) {
+
+        mZoomStart = pos;
 
     } else if (mIsDrawing) {
 
@@ -635,6 +658,12 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
 
         mSelStart = pos;
 
+    } else if (mIsZooming) {
+
+        QRectF r(mZoomStart, pos);
+        page->setZoomRect(r);
+        page->showZoomRect(true);
+
     } else if (mIsDrawing) {
 
         mDrawCurve->addPoint(pos);
@@ -655,7 +684,22 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
 
 void MainWindow::onGraphicsViewLeftMouseDragEnd(QPointF /*pos*/)
 {
+    if (!currentDoc) { return; }
+    PageScenePtr page = currentDoc->pages.value(currentPage);
+    if (!page) { return; }
+
     mGraphicsViewLeftMouseDown = false;
+
+    if (mIsZooming) {
+        page->showZoomRect(false);
+
+        cancelZooming();
+
+        mIsZoomed = true;
+        scaleScene();
+
+        setDrawPen();
+    }
 }
 
 void MainWindow::onGraphicsViewResized()
@@ -813,17 +857,24 @@ void MainWindow::on_action_Draw_triggered()
 
 void MainWindow::on_action_Exit_Draw_Mode_triggered()
 {
+    cancelZooming();
+    unZoom();
+
     mIsDrawing = false;
     showOnlyToolbar(ui->toolBar_main);
 }
 
 void MainWindow::on_action_Pen_triggered()
 {
+    cancelZooming();
+
     setDrawPen();
 }
 
 void MainWindow::on_action_Erase_triggered()
 {
+    cancelZooming();
+
     setDrawErase();
 }
 
@@ -989,5 +1040,18 @@ void MainWindow::on_toolButton_iconvsize_down_clicked()
     int s = qMax(settings.iconsVerticalSize.value().toInt() - 2, minIconSize);
     settings.iconsVerticalSize.set(s);
     updateToolbarIconSizeFromSettings();
+}
+
+void MainWindow::on_action_Zoom_triggered()
+{
+    // Start by un-zooming
+    unZoom();
+
+    ui->action_Pen->setChecked(false);
+    ui->action_Erase->setChecked(false);
+
+    // Enter zooming mode
+    mIsZooming = true;
+    ui->action_Zoom->setChecked(true);
 }
 

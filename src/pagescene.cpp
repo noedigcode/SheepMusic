@@ -32,6 +32,28 @@ void PageScene::showSelRect(bool show)
     }
 }
 
+void PageScene::setZoomRect(QRectF rect)
+{
+    if (!mZoomrect) { initZoomRect(); }
+    mZoomrect->setRect(rect);
+}
+
+QRectF PageScene::getZoomRect()
+{
+    if (!mZoomrect) { initZoomRect(); }
+    return mZoomrect->rect();
+}
+
+void PageScene::showZoomRect(bool show)
+{
+    if (show) {
+        if (!mZoomrect) { initZoomRect(); }
+        mZoomrect->show();
+    } else {
+        if (mZoomrect) { mZoomrect->hide(); }
+    }
+}
+
 void PageScene::addDrawCurve(DrawCurvePtr drawCurve)
 {
     mDrawCurves.append(drawCurve);
@@ -65,4 +87,18 @@ void PageScene::initSelRect()
     this->addItem(mSelrect);
     mSelrect->setZValue(1);
     mSelrect->hide();
+}
+
+void PageScene::initZoomRect()
+{
+    mZoomrect = new QGraphicsRectItem();
+    mZoomrect->setPen(QPen(Qt::blue, 2)); // Set blue border
+    QColor fillColor("#676cf5");
+    fillColor.setAlphaF(0.5);
+    mZoomrect->setBrush(fillColor); // Set semi-transparent blue fill
+
+    // Add the item to the scene
+    this->addItem(mZoomrect);
+    mZoomrect->setZValue(1);
+    mZoomrect->hide();
 }

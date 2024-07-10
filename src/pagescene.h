@@ -17,6 +17,10 @@ public:
     QRectF getSelRect();
     void showSelRect(bool show);
 
+    void setZoomRect(QRectF rect);
+    QRectF getZoomRect();
+    void showZoomRect(bool show);
+
     void addDrawCurve(DrawCurvePtr drawCurve);
     QList<DrawCurvePtr> drawCurves();
     void removeDrawCurve(DrawCurvePtr drawCurve);
@@ -24,6 +28,9 @@ public:
 private:
     QGraphicsRectItem* mSelrect = nullptr;
     void initSelRect();
+
+    QGraphicsRectItem* mZoomrect = nullptr;
+    void initZoomRect();
 
     QList<DrawCurvePtr> mDrawCurves;
 };

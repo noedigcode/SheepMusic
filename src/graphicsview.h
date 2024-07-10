@@ -19,6 +19,8 @@ signals:
     void resized();
 
 protected:
+    bool leftButtonIsDown = false;
+
     void mouseMoveEvent(QMouseEvent *event) override
     {
         if (event->buttons() & Qt::LeftButton) {
@@ -38,6 +40,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override
     {
         if (event->buttons() & Qt::LeftButton) {
+            leftButtonIsDown = true;
             emit leftClick(mapToScene(event->pos()));
             emit leftMouseDragStart(mapToScene(event->pos()));
         }
@@ -47,7 +50,9 @@ protected:
 
     void mouseReleaseEvent(QMouseEvent *event) override
     {
-        if (event->buttons() & Qt::LeftButton) {
+        bool leftButtonWasDown = leftButtonIsDown;
+        leftButtonIsDown = (event->buttons() & Qt::LeftButton);
+        if (leftButtonWasDown && !leftButtonIsDown) {
             emit leftMouseDragEnd(mapToScene(event->pos()));
         }
 

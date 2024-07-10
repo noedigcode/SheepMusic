@@ -1,8 +1,8 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <QSettings>
 #include <QCoreApplication>
+#include <QSettings>
 
 class Settings
 {
@@ -29,6 +29,7 @@ public:
         {
             return QSettings().value(mKey, mDefaultValue);
         }
+
         QString string()
         {
             return value().toString();
