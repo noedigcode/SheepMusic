@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "drawcurve.h"
+#include "gidfile.h"
 #include "pagescene.h"
 #include "settings.h"
 #include "version.h"

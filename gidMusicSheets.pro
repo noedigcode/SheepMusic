@@ -11,6 +11,7 @@ CONFIG += c++11
 SOURCES += \
     src/breadcrumbswidget.cpp \
     src/drawcurve.cpp \
+    src/gidfile.cpp \
     src/graphicsview.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
@@ -19,6 +20,7 @@ SOURCES += \
 HEADERS += \
     src/breadcrumbswidget.h \
     src/drawcurve.h \
+    src/gidfile.h \
     src/graphicsview.h \
     src/mainwindow.h \
     src/pagescene.h \

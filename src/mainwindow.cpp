@@ -94,23 +94,20 @@ void MainWindow::openSession(QString filepath)
     clearSession();
 
     // Read file
-    QByteArray data;
-    QFile f(filepath);
-    if (f.open(QIODevice::ReadOnly)) {
-        data = f.readAll();
-        f.close();
-        print("Read session file " + filepath);
-    } else {
+    GidFile::ReadResult r = GidFile::read(filepath);
+    if (!r.result.success) {
         print(QString("Error opening file for reading: %1: %2")
               .arg(filepath)
-              .arg(f.errorString()));
+              .arg(r.result.errorString));
         QMessageBox::critical(this, "Open Error",
                 "An error occurred and the session could not be opened.");
         return;
     }
 
+    print("Read session file " + filepath);
+
     // Create documents from JSON
-    QJsonDocument jin = QJsonDocument::fromJson(data);
+    QJsonDocument jin = QJsonDocument::fromJson(r.data);
     QJsonArray jdocs = jin.array();
     foreach (QJsonValue jval, jdocs) {
         QJsonObject jdoc = jval.toObject();
@@ -454,16 +451,14 @@ bool MainWindow::writeSession(QString filepath)
     jout.setArray(jdocs);
     QByteArray json = jout.toJson();
 
-    QFile f(filepath);
-    if (f.open(QIODevice::WriteOnly)) {
-        f.write(json);
-        f.close();
+    GidFile::Result r = GidFile::write(filepath, json);
+    if (r.success) {
         print("Wrote session to file " + filepath);
         return true;
     } else {
         print(QString("Error opening file for writing: %1: %2")
               .arg(filepath)
-              .arg(f.errorString()));
+              .arg(r.errorString));
         return false;
     }
 }
