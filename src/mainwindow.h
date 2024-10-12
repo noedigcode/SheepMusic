@@ -177,6 +177,7 @@ private slots:
     void on_toolButton_iconvsize_up_clicked();
     void on_toolButton_iconvsize_down_clicked();
     void on_action_Zoom_triggered();
+    void on_pushButton_console_clicked();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

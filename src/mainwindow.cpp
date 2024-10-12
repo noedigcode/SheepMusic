@@ -134,6 +134,9 @@ void MainWindow::openSession(QString filepath)
         documents.append(doc);
     }
 
+    // Set current session path before loading PDFs, as it may be used while loading
+    setSessionFilepath(filepath);
+
     // Load PDFs
     foreach (DocumentPtr doc, documents.all()) {
         loadPdf(doc);
@@ -141,7 +144,6 @@ void MainWindow::openSession(QString filepath)
 
     viewPage(documents.value(0), 0);
 
-    setSessionFilepath(filepath);
     settings.lastSession.set(filepath);
     setSessionModified(false);
 }
@@ -204,14 +206,16 @@ void MainWindow::updateWindowTitle()
 {
     QString text;
 
-    if (!mSessionFilepath.isEmpty()) {
-        text = QFileInfo(mSessionFilepath).baseName();
-    }
     if (currentDoc) {
-        text += " - " + currentDoc->name;
+        text = currentDoc->name;
     }
+
+    if (!mSessionFilepath.isEmpty()) {
+        text += " - " + QFileInfo(mSessionFilepath).baseName();
+    }
+
     if (mSessionModified) {
-        text.append("*");
+        text.prepend("*");
     }
 
     if (text.isEmpty()) {
@@ -398,9 +402,23 @@ void MainWindow::loadPdf(DocumentPtr doc)
 {
     if (!doc) { return; }
 
+    QString filepath = doc->filepath;
+
+    QFileInfo fi(filepath);
+    if (!fi.exists()) {
+        print("Document does not exist: " + filepath);
+        // Try using file relative to current session path
+        if (!mSessionFilepath.isEmpty()) {
+            filepath = QString("%1/%2")
+                    .arg(QFileInfo(mSessionFilepath).dir().path())
+                    .arg(fi.fileName());
+            print("Trying document relative to session path: " + filepath);
+        }
+    }
+
     QPdfDocument pdf;
-    print("Loading " + doc->filepath);
-    QPdfDocument::DocumentError error = pdf.load(doc->filepath);
+    print("Loading " + filepath);
+    QPdfDocument::DocumentError error = pdf.load(filepath);
     print(QString("Load result: %1").arg(QVariant::fromValue(error).toString()));
 
     print(QString("Pages: %1").arg(pdf.pageCount()));
@@ -1048,5 +1066,10 @@ void MainWindow::on_action_Zoom_triggered()
     // Enter zooming mode
     mIsZooming = true;
     ui->action_Zoom->setChecked(true);
+}
+
+void MainWindow::on_pushButton_console_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_console);
 }
 
