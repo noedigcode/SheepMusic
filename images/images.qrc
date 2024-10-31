@@ -19,5 +19,7 @@
         <file alias="done">icons8-done-96.png</file>
         <file alias="settings">icons8-settings-96.png</file>
         <file alias="zoom">icons8-zoom-to-fit-96.png</file>
+        <file alias="sheep">sheep_128.png</file>
+        <file>sheep_64.png</file>
     </qresource>
 </RCC>

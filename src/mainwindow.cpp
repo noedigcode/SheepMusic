@@ -14,7 +14,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->label_version->setText(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
+    updateAboutPage();
+
     ui->label_settingsLocation->setText(QSettings().fileName());
 
     // Set the icon size settings defaults to those specified in the GUI
@@ -223,6 +224,37 @@ void MainWindow::updateWindowTitle()
     }
 
     setWindowTitle(text);
+}
+
+void MainWindow::updateAboutPage()
+{
+    QString aboutText = ui->label_version->text();
+    aboutText.replace("%APP_NAME%", APP_NAME);
+    aboutText.replace("%APP_VERSION%", APP_VERSION);
+    aboutText.replace("%APP_YEAR%", APP_YEAR);
+    ui->label_version->setText(aboutText);
+
+    ui->plainTextEdit_changelog->setFont(getMonospaceFont());
+    QString changelog = "Could not load changelog";
+    QFile f("://changelog");
+    if (f.open(QIODevice::ReadOnly)) {
+        changelog = f.readAll();
+    }
+    ui->plainTextEdit_changelog->setPlainText(changelog);
+}
+
+QFont MainWindow::getMonospaceFont()
+{
+    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    if (!QFontInfo(font).fixedPitch()) {
+        // Try backup method
+        QStringList families({"monospace", "consolas", "courier new", "courier"});
+        foreach (QString family, families) {
+            font.setFamily(family);
+            if (QFontInfo(font).fixedPitch()) { break; }
+        }
+    }
+    return font;
 }
 
 void MainWindow::showMainPagesView()
@@ -1071,5 +1103,10 @@ void MainWindow::on_action_Zoom_triggered()
 void MainWindow::on_pushButton_console_clicked()
 {
     ui->stackedWidget->setCurrentWidget(ui->page_console);
+}
+
+void MainWindow::on_pushButton_about_clicked()
+{
+    ui->stackedWidget->setCurrentWidget(ui->page_about);
 }
 

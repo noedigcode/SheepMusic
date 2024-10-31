@@ -47,6 +47,8 @@ private:
     Ui::MainWindow *ui;
 
     void updateWindowTitle();
+    void updateAboutPage();
+    QFont getMonospaceFont();
 
     void showMainPagesView();
     void showDocOrderView();
@@ -178,6 +180,8 @@ private slots:
     void on_toolButton_iconvsize_down_clicked();
     void on_action_Zoom_triggered();
     void on_pushButton_console_clicked();
+
+    void on_pushButton_about_clicked();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

@@ -1,0 +1,49 @@
+SheepMusic Changelog
+====================
+
+[1.0.0] - 31 October 2024
+-------------------------
+
+Changed
+
+- Change name to SheepMusic
+
+Added
+
+- Add about screen
+- Add sheep logo
+
+
+[0.0.10] - 12 October 2024
+--------------------------
+
+Changed
+
+- Window title: show modified star at the start and show session name last.
+- When a file path in a session doesn't exist, attempt to load the document
+  relative to the session path.
+
+Added
+
+- Console button on settings screen
+- Safe file loading and saving.
+
+
+[0.0.9] - 7 October 2024
+------------------------
+
+Added
+
+- Zooming in draw mode
+
+
+[0.0.8] - 7 September 2024
+--------------------------
+
+Changed
+
+- Show current document name in window title
+
+Added
+
+- App version and settings path on settings screen
