@@ -13,9 +13,12 @@ public:
     QGraphicsPixmapItem* mPixmap = nullptr;
     void setImage(QImage image);
 
-    void setSelRect(QRectF rect);
-    QRectF getSelRect();
-    void showSelRect(bool show);
+    void setPageRectToCropRect();
+    QRectF getPageRect();
+
+    void setCropRect(QRectF rect);
+    QRectF getCropRect();
+    void showCropRect(bool show);
 
     void setZoomRect(QRectF rect);
     QRectF getZoomRect();
@@ -26,8 +29,11 @@ public:
     void removeDrawCurve(DrawCurvePtr drawCurve);
 
 private:
-    QGraphicsRectItem* mSelrect = nullptr;
-    void initSelRect();
+    QGraphicsRectItem* mPagerect = nullptr;
+    void initPageRect();
+
+    QGraphicsRectItem* mCroprect = nullptr;
+    void initCropRect();
 
     QGraphicsRectItem* mZoomrect = nullptr;
     void initZoomRect();

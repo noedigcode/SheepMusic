@@ -8,27 +8,40 @@ PageScene::PageScene()
 void PageScene::setImage(QImage image)
 {
     mPixmap = this->addPixmap(QPixmap::fromImage(image));
+    initPageRect();
 }
 
-void PageScene::setSelRect(QRectF rect)
+void PageScene::setPageRectToCropRect()
 {
-    if (!mSelrect) { initSelRect(); }
-    mSelrect->setRect(rect);
+    if (!mPagerect) { initPageRect(); }
+    mPagerect->setRect(mCroprect->rect());
 }
 
-QRectF PageScene::getSelRect()
+QRectF PageScene::getPageRect()
 {
-    if (!mSelrect) { initSelRect(); }
-    return mSelrect->rect();
+    if (!mPagerect) { initPageRect(); }
+    return mPagerect->rect();
 }
 
-void PageScene::showSelRect(bool show)
+void PageScene::setCropRect(QRectF rect)
+{
+    if (!mCroprect) { initCropRect(); }
+    mCroprect->setRect(rect);
+}
+
+QRectF PageScene::getCropRect()
+{
+    if (!mCroprect) { initCropRect(); }
+    return mCroprect->rect();
+}
+
+void PageScene::showCropRect(bool show)
 {
     if (show) {
-        if (!mSelrect) { initSelRect(); }
-        mSelrect->show();
+        if (!mCroprect) { initCropRect(); }
+        mCroprect->show();
     } else {
-        if (mSelrect) { mSelrect->hide(); }
+        if (mCroprect) { mCroprect->hide(); }
     }
 }
 
@@ -71,31 +84,55 @@ void PageScene::removeDrawCurve(DrawCurvePtr drawCurve)
     mDrawCurves.removeAll(drawCurve);
 }
 
-void PageScene::initSelRect()
+void PageScene::initPageRect()
+{
+    QRectF rect;
+    if (mCroprect) {
+        rect = mCroprect->rect();
+    } else if (mPixmap) {
+        rect = mPixmap->boundingRect();
+    }
+
+    if (!mPagerect) {
+        mPagerect = new QGraphicsRectItem(rect);
+        QPen pen(Qt::black, 1);
+        pen.setCosmetic(true);
+        mCroprect->setPen(pen);
+
+        // Add the item to the scene
+        this->addItem(mPagerect);
+        mPagerect->setZValue(1);
+    } else {
+        mPagerect->setRect(rect);
+    }
+}
+
+void PageScene::initCropRect()
 {
     QRectF rect;
     if (mPixmap) {
         rect = mPixmap->boundingRect();
     }
-    mSelrect = new QGraphicsRectItem(rect);
-    mSelrect->setPen(QPen(Qt::blue, 2)); // Set blue border
+    mCroprect = new QGraphicsRectItem(rect);
+    QPen pen(Qt::blue, 2);
+    pen.setCosmetic(true);
+    mCroprect->setPen(pen);
     QColor fillColor("#676cf5");
     fillColor.setAlphaF(0.5);
-    mSelrect->setBrush(fillColor); // Set semi-transparent blue fill
+    mCroprect->setBrush(fillColor); // Set semi-transparent blue fill
 
     // Add the item to the scene
-    this->addItem(mSelrect);
-    mSelrect->setZValue(1);
-    mSelrect->hide();
+    this->addItem(mCroprect);
+    mCroprect->setZValue(1);
+    mCroprect->hide();
 }
 
 void PageScene::initZoomRect()
 {
     mZoomrect = new QGraphicsRectItem();
-    mZoomrect->setPen(QPen(Qt::blue, 2)); // Set blue border
-    QColor fillColor("#676cf5");
-    fillColor.setAlphaF(0.5);
-    mZoomrect->setBrush(fillColor); // Set semi-transparent blue fill
+    QPen pen(Qt::blue, 2);
+    pen.setCosmetic(true);
+    mZoomrect->setPen(pen);
 
     // Add the item to the scene
     this->addItem(mZoomrect);

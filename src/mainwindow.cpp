@@ -120,7 +120,8 @@ void MainWindow::openSession(QString filepath)
             QJsonObject jpage = jvpage.toObject();
 
             PageScenePtr page(new PageScene());
-            page->setSelRect(jsonToRect(jpage.value("rect").toObject()));
+            page->setCropRect(jsonToRect(jpage.value("rect").toObject()));
+            page->setPageRectToCropRect();
             QJsonArray jcurves = jpage.value("drawCurves").toArray();
             foreach (QJsonValue jvcurve, jcurves) {
                 QJsonObject jcurve = jvcurve.toObject();
@@ -306,6 +307,11 @@ void MainWindow::enableCropping(bool enable)
     PageScenePtr page = currentDoc->pages.value(currentPage);
     if (!page) { return; }
 
+    if (!enable) {
+        // Apply crop
+        page->setPageRectToCropRect();
+    }
+
     scaleScene();
 }
 
@@ -330,6 +336,14 @@ void MainWindow::unZoom()
     if (mIsZoomed) {
         mIsZoomed = false;
         scaleScene();
+
+        // Hide zoom rectangle
+        if (currentDoc) {
+            PageScenePtr page = currentDoc->pages.value(currentPage);
+            if (page) {
+                page->showZoomRect(false);
+            }
+        }
     }
 }
 
@@ -371,10 +385,10 @@ void MainWindow::scaleScene()
     } else if (mIsZoomed) {
         rect = page->getZoomRect();
     } else {
-        rect = page->getSelRect();
+        rect = page->getPageRect();
     }
 
-    page->showSelRect(mIsCropping);
+    page->showCropRect(mIsCropping);
     ui->graphicsView->fitInView(rect, Qt::KeepAspectRatio);
     ui->graphicsView->centerOn(rect.center());
 }
@@ -482,7 +496,7 @@ bool MainWindow::writeSession(QString filepath)
         QJsonArray jpages;
         foreach (PageScenePtr page, doc->pages) {
             QJsonObject jpage;
-            jpage.insert("rect", rectToJson(page->getSelRect()));
+            jpage.insert("rect", rectToJson(page->getCropRect()));
 
             QJsonArray jcurves;
             foreach (DrawCurvePtr c, page->drawCurves()) {
@@ -621,7 +635,7 @@ void MainWindow::onGraphicsViewLeftMouseDragStart(QPointF pos)
 
     if (mIsCropping) {
 
-        QRectF selrect = page->getSelRect();
+        QRectF selrect = page->getCropRect();
 
         int edge = 0; // left, right, top, bottom
         qreal dist = qAbs(pos.x() - selrect.left());
@@ -683,7 +697,7 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
             dist = pos.y() - mSelStart.y();
         }
 
-        QRectF rect = page->getSelRect();
+        QRectF rect = page->getCropRect();
         switch (mSelrectEdge) {
         case 0:
             rect.setLeft(rect.left() + dist);
@@ -698,14 +712,18 @@ void MainWindow::onGraphicsViewLeftMouseDrag(QPointF pos)
             rect.setBottom(rect.bottom() + dist);
             break;
         }
-        page->setSelRect(rect);
+        page->setCropRect(rect);
         setSessionModified(true);
 
         mSelStart = pos;
 
     } else if (mIsZooming) {
 
-        QRectF r(mZoomStart, pos);
+        QPointF topleft(qMin(mZoomStart.x(), pos.x()),
+                        qMin(mZoomStart.y(), pos.y()));
+        QPointF botright(qMax(mZoomStart.x(), pos.x()),
+                         qMax(mZoomStart.y(), pos.y()));
+        QRectF r(topleft, botright);
         page->setZoomRect(r);
         page->showZoomRect(true);
 
@@ -736,7 +754,6 @@ void MainWindow::onGraphicsViewLeftMouseDragEnd(QPointF /*pos*/)
     mGraphicsViewLeftMouseDown = false;
 
     if (mIsZooming) {
-        page->showZoomRect(false);
 
         cancelZooming();
 
