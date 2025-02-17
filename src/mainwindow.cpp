@@ -232,6 +232,7 @@ void MainWindow::updateAboutPage()
     QString aboutText = ui->label_version->text();
     aboutText.replace("%APP_NAME%", APP_NAME);
     aboutText.replace("%APP_VERSION%", APP_VERSION);
+    aboutText.replace("%APP_YEAR_FROM%", APP_YEAR_FROM);
     aboutText.replace("%APP_YEAR%", APP_YEAR);
     ui->label_version->setText(aboutText);
 

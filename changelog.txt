@@ -1,17 +1,23 @@
 SheepMusic Changelog
 ====================
 
-[1.0.0] - 31 October 2024
--------------------------
+[1.0.0] - 17 February 2025
+--------------------------
 
 Changed
 
 - Change name to SheepMusic
+- Keep zoom rectangle visible when zoomed. Rectangle no longer filled.
+- Show page cropped border permanently (hepls when zooming in to draw).
 
 Added
 
 - Add about screen
 - Add sheep logo
+
+Fixed
+
+- Alow drawing zoom rectangle in any direction.
 
 
 [0.0.10] - 12 October 2024

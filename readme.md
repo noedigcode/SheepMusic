@@ -4,7 +4,7 @@ SheepMusic
 
 Simple PDF music sheets viewer for normal PC and touch screens.
 
-2024 Gideon van der Kolf, noedigcode@gmail.com
+2024-2025 Gideon van der Kolf, noedigcode@gmail.com
 
 Requirements:
 

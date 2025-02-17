@@ -344,7 +344,7 @@ QPushButton {
         <item>
          <widget class="QLabel" name="label_version">
           <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;%APP_NAME%&lt;/p&gt;&lt;p&gt;%APP_VERSION%&lt;/p&gt;&lt;p&gt;%APP_YEAR% Gideon van der Kolf&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;icons8.com&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;%APP_NAME%&lt;/p&gt;&lt;p&gt;%APP_VERSION%&lt;/p&gt;&lt;p&gt;%APP_YEAR_FROM%-%APP_YEAR% Gideon van der Kolf&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;icons8.com&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="textFormat">
            <enum>Qt::MarkdownText</enum>
