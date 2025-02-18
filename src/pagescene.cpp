@@ -97,7 +97,7 @@ void PageScene::initPageRect()
         mPagerect = new QGraphicsRectItem(rect);
         QPen pen(Qt::black, 1);
         pen.setCosmetic(true);
-        mCroprect->setPen(pen);
+        mPagerect->setPen(pen);
 
         // Add the item to the scene
         this->addItem(mPagerect);
