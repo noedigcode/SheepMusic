@@ -1,6 +1,19 @@
 SheepMusic Changelog
 ====================
 
+[1.0.1] - Unreleased
+--------------------
+
+Added
+
+- Document list now have numbers.
+
+Fixed
+
+- Crash when adding documents (erroneously tried to set pen of crop rectangle
+  instead of page rectangle).
+
+
 [1.0.0] - 17 February 2025
 --------------------------
 
