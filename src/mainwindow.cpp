@@ -560,7 +560,10 @@ void MainWindow::setSessionModified(bool modified)
 
 void MainWindow::updateDocOrderList_appended(DocumentPtr doc)
 {
-    ui->listWidget_docs->addItem(doc->name);
+    QListWidgetItem* item = new QListWidgetItem();
+    item->setData(Qt::UserRole, doc->name);
+    ui->listWidget_docs->addItem(item);
+    updateDocOrderListIndexes();
 }
 
 void MainWindow::updateDocOrderList_cleared()
@@ -571,7 +574,10 @@ void MainWindow::updateDocOrderList_cleared()
 void MainWindow::updateDocOrderList_removed(int index)
 {
     QListWidgetItem* item = ui->listWidget_docs->item(index);
-    if (item) { delete item; }
+    if (item) {
+        delete item;
+        updateDocOrderListIndexes();
+    }
 }
 
 void MainWindow::updateDocOrderList_moved(int from, int to)
@@ -580,6 +586,17 @@ void MainWindow::updateDocOrderList_moved(int from, int to)
     if (!item) { return; }
 
     ui->listWidget_docs->insertItem(to, item);
+    updateDocOrderListIndexes();
+}
+
+void MainWindow::updateDocOrderListIndexes()
+{
+    for (int i = 0; i < ui->listWidget_docs->count(); i++) {
+        QListWidgetItem* item = ui->listWidget_docs->item(i);
+        item->setText(QString("%1 - %2")
+                      .arg(i+1)
+                      .arg(item->data(Qt::UserRole).toString()));
+    }
 }
 
 void MainWindow::setupBreadcrumbs()

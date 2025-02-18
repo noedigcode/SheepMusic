@@ -139,6 +139,7 @@ private:
     void updateDocOrderList_cleared();
     void updateDocOrderList_removed(int index);
     void updateDocOrderList_moved(int from, int to);
+    void updateDocOrderListIndexes();
 
     // -------------------------------------------------------------------------
 
