@@ -1,8 +1,21 @@
 SheepMusic Changelog
 ====================
 
-[1.0.1] - Unreleased
+[1.0.2] - April 2025
 --------------------
+
+Changed
+
+- When adding documents, add after current/selected document.
+
+Fixed
+
+- Fixed bug where cropping multiple pages didn't update page view when exiting
+  crop mode.
+
+
+[1.0.1] - 13 April 2025
+-----------------------
 
 Added
 

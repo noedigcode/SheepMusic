@@ -133,7 +133,7 @@ void MainWindow::openSession(QString filepath)
             doc->pages.append(page);
             updateBreadcrumbs();
         }
-        documents.append(doc);
+        documents.add(doc);
     }
 
     // Set current session path before loading PDFs, as it may be used while loading
@@ -284,9 +284,6 @@ void MainWindow::print(QString msg)
 
 void MainWindow::setupGraphicsView()
 {
-    //ui->graphicsView->setRenderHint(QPainter::Antialiasing, true);
-    //ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform, true);
-
     // Mouse event signals/slots
     connect(ui->graphicsView, &GraphicsView::leftClick,
             this, &MainWindow::onGraphicsViewLeftClick);
@@ -304,13 +301,13 @@ void MainWindow::enableCropping(bool enable)
 {
     mIsCropping = enable;
 
-    if (!currentDoc) { return; }
-    PageScenePtr page = currentDoc->pages.value(currentPage);
-    if (!page) { return; }
-
     if (!enable) {
-        // Apply crop
-        page->setPageRectToCropRect();
+        // Exiting crop mode. Apply crop to all pages of all documents
+        foreach (DocumentPtr doc, documents.all()) {
+            foreach (PageScenePtr page, doc->pages) {
+                page->setPageRectToCropRect();
+            }
+        }
     }
 
     scaleScene();
@@ -558,11 +555,11 @@ void MainWindow::setSessionModified(bool modified)
     updateWindowTitle();
 }
 
-void MainWindow::updateDocOrderList_appended(DocumentPtr doc)
+void MainWindow::updateDocOrderList_added(DocumentPtr doc, int index)
 {
     QListWidgetItem* item = new QListWidgetItem();
     item->setData(Qt::UserRole, doc->name);
-    ui->listWidget_docs->addItem(item);
+    ui->listWidget_docs->insertItem(index, item);
     updateDocOrderListIndexes();
 }
 
@@ -839,15 +836,24 @@ void MainWindow::on_action_Add_Document_triggered()
                                                      QString(), "PDF (*.pdf)");
     if (filepaths.isEmpty()) { return; }
 
+    // Docs will be added after current/select document
+    int index = 0;
+    if (ui->stackedWidget->currentWidget() == ui->page_orderDocs) {
+        index = ui->listWidget_docs->currentRow() + 1;
+    } else if (currentDoc) {
+        index = documents.indexOf(currentDoc) + 1;
+    }
+
     DocumentPtr docToView;
 
     foreach (QString filepath, filepaths) {
         DocumentPtr doc(new Document());
         doc->name = QFileInfo(filepath).baseName();
         doc->filepath = filepath;
-        documents.append(doc);
+        documents.add(doc, index++);
         updateBreadcrumbs();
         loadPdf(doc);
+        // View the first added document
         if (!docToView) { docToView = doc; }
     }
 
@@ -958,10 +964,13 @@ void MainWindow::on_action_Erase_triggered()
     setDrawErase();
 }
 
-void MainWindow::Documents::append(DocumentPtr doc)
+void MainWindow::Documents::add(DocumentPtr doc, int index)
 {
-    documents.append(doc);
-    mw->updateDocOrderList_appended(doc);
+    // Index of -1 means append to back
+    if (index == -1) { index = documents.count(); }
+
+    documents.insert(index, doc);
+    mw->updateDocOrderList_added(doc, index);
     mw->updateBreadcrumbs();
 }
 

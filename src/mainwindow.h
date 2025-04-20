@@ -75,7 +75,7 @@ private:
     {
     public:
         Documents(MainWindow* mw) : mw(mw) {}
-        void append(DocumentPtr doc);
+        void add(DocumentPtr doc, int index = -1);
         QList<DocumentPtr> all();
         DocumentPtr value(int index);
         void clear();
@@ -135,7 +135,7 @@ private:
 
     // -------------------------------------------------------------------------
 
-    void updateDocOrderList_appended(DocumentPtr doc);
+    void updateDocOrderList_added(DocumentPtr doc, int index);
     void updateDocOrderList_cleared();
     void updateDocOrderList_removed(int index);
     void updateDocOrderList_moved(int from, int to);
