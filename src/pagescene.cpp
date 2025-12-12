@@ -14,6 +14,7 @@ void PageScene::setImage(QImage image)
 void PageScene::setPageRectToCropRect()
 {
     if (!mPagerect) { initPageRect(); }
+    if (!mCroprect) { return; }
     mPagerect->setRect(mCroprect->rect());
 }
 
