@@ -1,6 +1,19 @@
 SheepMusic Changelog
 ====================
 
+[1.0.3] - 12 December 2025
+--------------------------
+
+Added
+
+- Add GPLv3 license file and comment to source code.
+
+Fixed
+
+- Crash when exiting crop mode when some pages have not been viewed in crop mode
+  (i.e. if their crop rectangles don't exist yet).
+
+
 [1.0.2] - April 2025
 --------------------
 
