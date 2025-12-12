@@ -1,3 +1,23 @@
+/******************************************************************************
+ *
+ * This file is part of SheepMusic.
+ * Copyright (C) 2025 Gideon van der Kolf
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *****************************************************************************/
+
 #ifndef GRAPHICSVIEW_H
 #define GRAPHICSVIEW_H
 
@@ -21,49 +41,11 @@ signals:
 protected:
     bool leftButtonIsDown = false;
 
-    void mouseMoveEvent(QMouseEvent *event) override
-    {
-        if (event->buttons() & Qt::LeftButton) {
-            emit leftMouseDrag(mapToScene(event->pos()));
-        }
-
-        QGraphicsView::mouseMoveEvent(event);
-    }
-
-    void mouseDoubleClickEvent(QMouseEvent *event) override
-    {
-        if (event->buttons() & Qt::LeftButton) {
-            mousePressEvent(event);
-        }
-    }
-
-    void mousePressEvent(QMouseEvent *event) override
-    {
-        if (event->buttons() & Qt::LeftButton) {
-            leftButtonIsDown = true;
-            emit leftClick(mapToScene(event->pos()));
-            emit leftMouseDragStart(mapToScene(event->pos()));
-        }
-
-        QGraphicsView::mousePressEvent(event);
-    }
-
-    void mouseReleaseEvent(QMouseEvent *event) override
-    {
-        bool leftButtonWasDown = leftButtonIsDown;
-        leftButtonIsDown = (event->buttons() & Qt::LeftButton);
-        if (leftButtonWasDown && !leftButtonIsDown) {
-            emit leftMouseDragEnd(mapToScene(event->pos()));
-        }
-
-        QGraphicsView::mouseReleaseEvent(event);
-    }
-
-    void resizeEvent(QResizeEvent* event) override
-    {
-        emit resized();
-        QGraphicsView::resizeEvent(event);
-    }
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void resizeEvent(QResizeEvent* event) override;
 };
 
 #endif // GRAPHICSVIEW_H
