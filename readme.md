@@ -6,6 +6,8 @@ Simple PDF music sheets viewer for normal PC and touch screens.
 
 2024-2025 Gideon van der Kolf, noedigcode@gmail.com
 
+![SheepMusic screenshot](screenshot.png)
+
 Requirements:
 
 - Qt5
