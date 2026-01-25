@@ -26,6 +26,7 @@
 #include <QGraphicsPixmapItem>
 #include <QMessageBox>
 #include <QPdfDocument>
+#include <QPushButton>
 #include <QScreen>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -37,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     updateAboutPage();
 
     ui->label_settingsLocation->setText(QSettings().fileName());
+    ui->tabWidget_settings->setCurrentWidget(ui->tab_settings_settings);
 
     // Set the icon size settings defaults to those specified in the GUI
     settings.iconsHorizontalSize.setDefaultValue(ui->toolBar_main->iconSize().width());
@@ -53,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupBreadcrumbs();
     updateBreadcrumbs();
     setupGraphicsView();
+    setupShortcutKeys();
 
     QString lastSession = settings.lastSession.string();
     if (!lastSession.isEmpty()) {
@@ -222,6 +225,75 @@ void MainWindow::setFullscreen(bool fullscreen)
 bool MainWindow::msgBoxYesNo(QString title, QString text)
 {
     return QMessageBox::question(this, title, text) == QMessageBox::Yes;
+}
+
+void MainWindow::setupShortcutKeys()
+{
+    // Assign shortcut keys from settings to actions
+
+    setActionShorcutsFromSetting(ui->action_Previous_Page,
+                                 &settings.shortcutPrevPage);
+    // Add action to this so it is always accessible with shortcut keys
+    addAction(ui->action_Previous_Page);
+
+    setActionShorcutsFromSetting(ui->action_Next_Page,
+                                 &settings.shortcutNextPage);
+    addAction(ui->action_Next_Page);
+
+    setActionShorcutsFromSetting(ui->action_First_Page,
+                                 &settings.shortcutFirstPage);
+    addAction(ui->action_First_Page);
+
+    setActionShorcutsFromSetting(ui->action_Last_Page,
+                                 &settings.shortcutLastPage);
+    addAction(ui->action_Last_Page);
+
+    setActionShorcutsFromSetting(ui->action_Next_Document,
+                                 &settings.shortcutNextDoc);
+    addAction(ui->action_Next_Document);
+
+    setActionShorcutsFromSetting(ui->action_Previous_Document,
+                                 &settings.shortcutPrevDoc);
+    addAction(ui->action_Previous_Document);
+
+    // Prepare shortcut keys in settings UI
+    int row = 0;
+    foreach (QAction* action, findChildren<QAction*>()) {
+        QStringList shortcuts;
+        foreach (QKeySequence s, action->shortcuts()) {
+            shortcuts.append(s.toString(QKeySequence::NativeText));
+        }
+        if (!shortcuts.isEmpty()) {
+
+            QLabel* label = new QLabel();
+            label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+            label->setText(action->text());
+            ui->gridLayout_shortcutKeys->addWidget(label, row, 0,
+                                                   Qt::AlignLeft);
+
+            QWidget* container = new QWidget();
+            QHBoxLayout* hl = new QHBoxLayout(container);
+            foreach (QString shortcut, shortcuts) {
+                QPushButton* b = new QPushButton(this);
+                b->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+                b->setText(shortcut);
+                hl->addWidget(b);
+                //ui->gridLayout_shortcutKeys->addWidget(b, row, col++);
+            }
+
+            hl->addStretch();
+            ui->gridLayout_shortcutKeys->addWidget(container, row, 1);
+
+            row++;
+        }
+    }
+    //ui->label_shortcutKeys->setText(lines.join("\n"));
+}
+
+void MainWindow::setActionShorcutsFromSetting(QAction *action, Settings::Setting *setting)
+{
+    action->setShortcuts(settings.unserializeKeySequences(
+                             setting->value().toStringList()));
 }
 
 void MainWindow::updateWindowTitle()
@@ -807,7 +879,8 @@ void MainWindow::onGraphicsViewResized()
 void MainWindow::on_action_Debug_Console_triggered()
 {
     if (ui->action_Debug_Console->isChecked()) {
-        ui->stackedWidget->setCurrentWidget(ui->page_console);
+        ui->stackedWidget->setCurrentWidget(ui->page_settings);
+        ui->tabWidget_settings->setCurrentWidget(ui->tab_settings_console);
     } else {
         ui->stackedWidget->setCurrentWidget(ui->page_main);
     }
@@ -1164,13 +1237,41 @@ void MainWindow::on_action_Zoom_triggered()
     ui->action_Zoom->setChecked(true);
 }
 
-void MainWindow::on_pushButton_console_clicked()
+void MainWindow::on_action_First_Page_triggered()
 {
-    ui->stackedWidget->setCurrentWidget(ui->page_console);
+    DocumentPtr firstDoc = documents.value(0);
+    if (!firstDoc) { return; }
+
+    viewPage(firstDoc, 0);
 }
 
-void MainWindow::on_pushButton_about_clicked()
+void MainWindow::on_action_Last_Page_triggered()
 {
-    ui->stackedWidget->setCurrentWidget(ui->page_about);
+    DocumentPtr lastDoc = documents.value(documents.count() - 1);
+    if (!lastDoc) { return; }
+
+    viewPage(lastDoc, lastDoc->pages.count() - 1);
+}
+
+void MainWindow::on_action_Next_Document_triggered()
+{
+    int nextDocIndex = 0;
+    if (currentDoc) {
+        nextDocIndex = documents.indexOf(currentDoc) + 1;
+    }
+    DocumentPtr nextDoc = documents.value(nextDocIndex);
+    if (!nextDoc) { return; }
+    viewPage(nextDoc, 0);
+}
+
+void MainWindow::on_action_Previous_Document_triggered()
+{
+    int prevDocIndex = 0;
+    if (currentDoc) {
+        prevDocIndex = documents.indexOf(currentDoc) - 1;
+    }
+    DocumentPtr prevDoc = documents.value(prevDocIndex);
+    if (!prevDoc) { return; }
+    viewPage(prevDoc, 0);
 }
 

@@ -66,6 +66,9 @@ public:
 private:
     Ui::MainWindow *ui;
 
+    void setupShortcutKeys();
+    void setActionShorcutsFromSetting(QAction* action, Settings::Setting* setting);
+
     void updateWindowTitle();
     void updateAboutPage();
     QFont getMonospaceFont();
@@ -76,7 +79,6 @@ private:
     void print(QString msg);
 
     Settings settings {"Noedigcode", "noedigcode.co.za", APP_NAME, APP_VERSION};
-    void setupSettings();
 
     // -------------------------------------------------------------------------
 
@@ -200,8 +202,10 @@ private slots:
     void on_toolButton_iconvsize_up_clicked();
     void on_toolButton_iconvsize_down_clicked();
     void on_action_Zoom_triggered();
-    void on_pushButton_console_clicked();
-    void on_pushButton_about_clicked();
+    void on_action_First_Page_triggered();
+    void on_action_Last_Page_triggered();
+    void on_action_Next_Document_triggered();
+    void on_action_Previous_Document_triggered();
 
 protected:
     void closeEvent(QCloseEvent* event) override;

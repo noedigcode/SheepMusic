@@ -22,6 +22,7 @@
 #define SETTINGS_H
 
 #include <QCoreApplication>
+#include <QKeySequence>
 #include <QSettings>
 
 class Settings
@@ -73,10 +74,59 @@ public:
     // =========================================================================
     // Setting objects
 
+    QStringList serializeKeySequences(QList<QKeySequence> keySequences)
+    {
+        QStringList ret;
+        foreach (QKeySequence s, keySequences) {
+            ret.append(s.toString(QKeySequence::PortableText));
+        }
+        return ret;
+    }
+    QList<QKeySequence> unserializeKeySequences(QStringList serialized)
+    {
+        QList<QKeySequence> ret;
+        foreach (QString t, serialized) {
+            ret.append(QKeySequence(t, QKeySequence::PortableText));
+        }
+        return ret;
+    }
+
     Setting lastSession {"lastSession", ""};
     Setting fullscreen {"fullscreen", false};
     Setting iconsHorizontalSize {"iconsHorizontalSize", 54};
     Setting iconsVerticalSize {"iconsVerticalSize", 32};
+    Setting shortcutPrevPage {"shortcutPrevPage", serializeKeySequences(
+                    {
+                        QKeySequence(Qt::Key_Left),
+                        QKeySequence(Qt::Key_PageUp),
+                        QKeySequence(Qt::Key_Backspace)
+                    })};
+    Setting shortcutNextPage {"shortcutNextPage", serializeKeySequences(
+                    {
+                        QKeySequence(Qt::Key_Right),
+                        QKeySequence(Qt::Key_PageDown),
+                        QKeySequence(Qt::Key_Space)
+                    })};
+    Setting shortcutFirstPage {"shortcutFirstPage", serializeKeySequences(
+                    {
+                        QKeySequence(Qt::Key_Home),
+                        QKeySequence(Qt::Key_1)
+                    })};
+    Setting shortcutLastPage {"shortcutLastPage", serializeKeySequences(
+                    {
+                        QKeySequence(Qt::Key_End)
+                    })};
+    Setting shortcutNextDoc {"shortuctNextDoc", serializeKeySequences(
+                    {
+                        QKeySequence(Qt::Key_Down),
+                        QKeySequence(Qt::Key_N)
+                    })};
+    Setting shortcutPrevDoc {"shortcutPrevDoc", serializeKeySequences(
+                    {
+                        QKeySequence(Qt::Key_Up),
+                        QKeySequence(Qt::Key_P)
+                    })};
+
 };
 
 #endif // SETTINGS_H
